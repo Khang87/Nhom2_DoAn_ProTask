@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "528429507807",
+    "project_id": "protask-2005",
+    "storage_bucket": "protask-2005.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528429507807:android:85777c9e764f4bd21d756a",
+        "android_client_info": {
+          "package_name": "com.example.doanltdd"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXobom8sNdJISA4ItgWQCttRbP0zJT7PI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528429507807:android:44f02c6494760a4f1d756a",
+        "android_client_info": {
+          "package_name": "com.example.protask"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXobom8sNdJISA4ItgWQCttRbP0zJT7PI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
