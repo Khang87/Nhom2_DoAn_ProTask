@@ -15,7 +15,6 @@ import 'package:protask/screen/forgotpass_screen.dart';
 import 'package:protask/screen/home_screen.dart';
 
 void main() async {
-  // Đảm bảo các dịch vụ hệ thống đã sẵn sàng
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
@@ -32,7 +31,6 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
-        // Khởi tạo AuthProvider sẽ tự động gọi _checkCurrentUser()
         ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: const MyApp(),
@@ -65,10 +63,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
 
-      // 🔥 LOGIC ĐIỀU HƯỚNG TỰ ĐỘNG
+      //  LOGIC ĐIỀU HƯỚNG TỰ ĐỘNG
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
-          // ⏳ 1. Trong khi đang nạp dữ liệu từ SQLite/Firebase
+          // . Trong khi đang nạp dữ liệu từ SQLite/Firebase
           if (auth.isLoading) {
             return const Scaffold(
               body: Center(
@@ -84,12 +82,12 @@ class MyApp extends StatelessWidget {
             );
           }
 
-          // ✅ 2. Nếu đã có dữ liệu người dùng (Đã login)
+          // . Nếu đã có dữ liệu người dùng (Đã login)
           if (auth.isLoggedIn) {
             return const HomeScreen();
           }
 
-          // ❌ 3. Nếu chưa đăng nhập
+          // . Nếu chưa đăng nhập
           return const LoginScreen();
         },
       ),

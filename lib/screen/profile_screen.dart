@@ -57,7 +57,7 @@ class ProfileScreen extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF2C2C2E) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Đăng xuất khỏi Palexy Store Optimizer?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text("Đăng xuất khỏi ProTask App?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Huỷ bỏ", style: TextStyle(color: Colors.blue))),
           ElevatedButton(

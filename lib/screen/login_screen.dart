@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 40),
             SizedBox(width: 84, height: 84, child: CustomPaint(painter: ProTaskLogoPainter())),
             const SizedBox(height: 30),
-            Text("Palexy Store Optimizer", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+            Text("ProTask App", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
             const SizedBox(height: 50),
 
             // Input Email
