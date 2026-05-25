@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../provider/locale_provider.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -15,10 +17,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     // Màu chữ linh hoạt theo theme
     final Color textColor = isDark ? Colors.white : Colors.black;
-    final Color subTextColor = isDark ? Colors.white70 : Colors.black87;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey[100],
@@ -30,7 +32,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-            "Thông báo",
+            localeProvider.getText('notification_title'),
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold)
         ),
         centerTitle: true,
@@ -41,7 +43,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                  "Cập nhật ca làm việc và lịch trình",
+                  localeProvider.getText('notification_schedule_update'),
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -53,8 +55,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
               // 2. Truyền biến và hàm setState vào _tile
               _tile(
                 Icons.email_outlined,
-                "Email",
-                "Gửi đến email chính của bạn",
+                localeProvider.getText('email_notification'),
+                localeProvider.getText('email_notification_sub'),
                 _isEmailEnabled,
                     (bool value) {
                   setState(() {
@@ -68,8 +70,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
               _tile(
                 Icons.notifications_none,
-                "Thông báo đẩy",
-                "Gửi đến thiết bị của bạn ngay lập tức",
+                localeProvider.getText('push_notification'),
+                localeProvider.getText('push_notification_sub'),
                 _isPushEnabled,
                     (bool value) {
                   setState(() {

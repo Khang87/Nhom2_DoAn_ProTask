@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/auth_provider.dart';
+import '../provider/locale_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 class MyProfileScreen extends StatefulWidget {
@@ -18,18 +19,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   bool _isDeleting = false; // Biến đánh dấu đang thực hiện luồng xóa
 
   // --- HÀM 1: GỬI OTP QUA FIREBASE ---
-  Future<void> _sendOTP(String phone, StateSetter setModalState) async {
+  Future<void> _sendOTP(String phone, StateSetter setModalState, LocaleProvider localeProvider) async {
     setModalState(() => _isLoading = true);
 
     await firebase_auth.FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: phone,
       verificationCompleted: (firebase_auth.PhoneAuthCredential credential) async {
-        await _verifyAndProcess(credential);
+        await _verifyAndProcess(credential, localeProvider);
       },
       verificationFailed: (firebase_auth.FirebaseAuthException e) {
         setModalState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi: ${e.message}")),
+          SnackBar(content: Text("${localeProvider.getText('error_prefix')} ${e.message}")),
         );
       },
       codeSent: (String verId, int? resendToken) {
@@ -45,7 +46,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   // --- HÀM 2: XÁC THỰC VÀ XỬ LÝ (LƯU HOẶC XÓA) ---
-  Future<void> _verifyAndProcess(firebase_auth.AuthCredential credential) async {
+  Future<void> _verifyAndProcess(firebase_auth.AuthCredential credential, LocaleProvider localeProvider) async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -63,18 +64,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isDeleting ? "Đã xóa số điện thoại thành công!" : "Cập nhật số điện thoại thành công!")),
+          SnackBar(content: Text(_isDeleting ? localeProvider.getText('phone_delete_success') : localeProvider.getText('phone_update_success'))),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Mã OTP không chính xác!")),
+        SnackBar(content: Text(localeProvider.getText('otp_error'))),
       );
     }
   }
 
   // --- HÀM 3: HIỂN THỊ SHEET ---
-  void _showPhoneEditSheet(BuildContext context, String? currentPhone, AuthProvider auth, bool isDark) {
+  void _showPhoneEditSheet(BuildContext context, String? currentPhone, AuthProvider auth, bool isDark, LocaleProvider localeProvider) {
     _phoneController.text = currentPhone ?? "";
     _otpController.clear();
     _verificationId = null;
@@ -99,8 +100,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
                 Text(
                   _verificationId == null
-                      ? (currentPhone == null || currentPhone.isEmpty ? "Thêm số điện thoại" : "Cập nhật / Xóa số")
-                      : "Xác thực mã OTP",
+                      ? (currentPhone == null || currentPhone.isEmpty ? localeProvider.getText('add_phone') : localeProvider.getText('update_delete_phone'))
+                      : localeProvider.getText('verify_otp'),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
                 ),
                 const SizedBox(height: 20),
@@ -112,14 +113,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     autofocus: true,
                     style: TextStyle(color: isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
-                      hintText: "+84 123 456 789",
-                      helperText: "Lưu ý: Luôn bắt đầu bằng +84",
+                      hintText: localeProvider.getText('phone_hint'),
+                      helperText: localeProvider.getText('phone_helper'),
                       prefixIcon: const Icon(Icons.phone, color: Colors.blue),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ] else ...[
-                  Text("Mã xác thực đã gửi đến ${_phoneController.text}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text("${localeProvider.getText('otp_sent_to')} ${_phoneController.text}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
                   const SizedBox(height: 15),
                   TextField(
                     controller: _otpController,
@@ -133,7 +134,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                       letterSpacing: 8,
                     ),
                     decoration: InputDecoration(
-                      hintText: "******",
+                      hintText: localeProvider.getText('otp_hint'),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -152,13 +153,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                           child: OutlinedButton(
                             onPressed: () async {
                               setModalState(() => _isDeleting = true);
-                              await _sendOTP(currentPhone, setModalState);
+                              await _sendOTP(currentPhone, setModalState, localeProvider);
                             },
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.red),
                               padding: const EdgeInsets.symmetric(vertical: 15),
                             ),
-                            child: const Text("Xóa số", style: TextStyle(color: Colors.red)),
+                            child: Text(localeProvider.getText('delete_phone'), style: const TextStyle(color: Colors.red)),
                           ),
                         ),
 
@@ -171,7 +172,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             if (_verificationId == null) {
                               if (_phoneController.text.trim().isNotEmpty) {
                                 setModalState(() => _isDeleting = false); // Đánh dấu là cập nhật
-                                await _sendOTP(_phoneController.text.trim(), setModalState);
+                                await _sendOTP(_phoneController.text.trim(), setModalState, localeProvider);
                               }
                             } else {
                               // Xác nhận mã OTP
@@ -179,7 +180,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                                 verificationId: _verificationId!,
                                 smsCode: _otpController.text.trim(),
                               );
-                              await _verifyAndProcess(credential);
+                              await _verifyAndProcess(credential, localeProvider);
                             }
                           },
                           style: ElevatedButton.styleFrom(
@@ -188,7 +189,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           child: Text(
-                            _verificationId == null ? "Gửi mã OTP" : "Xác nhận OTP",
+                            _verificationId == null ? localeProvider.getText('send_otp') : localeProvider.getText('confirm_otp'),
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -213,6 +214,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = auth.currentUser;
     final String username = user?['username'] ?? "User";
@@ -228,7 +230,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("Hồ sơ của tôi", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        title: Text(localeProvider.getText('my_profile_title'), style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: Column(
@@ -246,13 +248,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           Text(username, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 30),
 
-          _infoCard("Thông tin liên hệ", isDark, [
-            _infoRow(Icons.email_outlined, user?['email'] ?? "Chưa có email", textColor),
+          _infoCard(localeProvider.getText('contact_info'), isDark, [
+            _infoRow(Icons.email_outlined, user?['email'] ?? localeProvider.getText('no_email'), textColor),
             GestureDetector(
-              onTap: () => _showPhoneEditSheet(context, phone, auth, isDark),
+              onTap: () => _showPhoneEditSheet(context, phone, auth, isDark, localeProvider),
               child: _infoRow(
                   Icons.phone_outlined,
-                  (phone != null && phone.isNotEmpty) ? phone : "Thêm số điện thoại",
+                  (phone != null && phone.isNotEmpty) ? phone : localeProvider.getText('add_phone'),
                   (phone != null && phone.isNotEmpty) ? textColor : Colors.blue
               ),
             ),

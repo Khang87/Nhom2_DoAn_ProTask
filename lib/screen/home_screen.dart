@@ -24,8 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final List<Widget> _pages = [
       const HomeTab(),
-      const Center(child: Text("Màn hình Nhiệm vụ chi tiết")),
-      const Center(child: Text("Thông báo nhóm")),
+      Center(child: Text(localeProvider.getText('task_detail_screen'))),
+      Center(child: Text(localeProvider.getText('group_notifications'))),
       const ProfileScreen(),
     ];
 
