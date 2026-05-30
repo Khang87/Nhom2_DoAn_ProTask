@@ -28,7 +28,13 @@ class ProfileScreen extends StatelessWidget {
       body: ListView(
         children: [
           _buildSectionTitle("CHUNG"),
-          _buildSettingTile(Icons.language, "Ngôn ngữ", isDark, subtitle: localeProvider.currentLanguageNativeName, onTap: () {}),
+          _buildSettingTile(
+            Icons.language, 
+            "Ngôn ngữ", 
+            isDark, 
+            subtitle: localeProvider.currentLanguageNativeName, 
+            onTap: () => _showLanguageDialog(context, isDark, localeProvider),
+          ),
           _buildSettingTile(Icons.dark_mode, "Chủ đề", isDark, subtitle: isDark ? "Tối" : "Sáng", onTap: () => themeProvider.toggleTheme()),
 
           _buildSectionTitle("TÀI KHOẢN"),
@@ -66,6 +72,29 @@ class ProfileScreen extends StatelessWidget {
             child: const Text("Đăng xuất", style: TextStyle(color: Colors.black)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, bool isDark, LocaleProvider localeProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF2C2C2E) : Colors.white,
+        title: const Text("Chọn ngôn ngữ"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: localeProvider.supportedLocales.entries.map((entry) {
+            return ListTile(
+              title: Text(entry.value['native']!),
+              trailing: localeProvider.locale.languageCode == entry.key ? const Icon(Icons.check, color: Colors.blue) : null,
+              onTap: () {
+                localeProvider.setLocale(entry.key);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
       ),
     );
   }

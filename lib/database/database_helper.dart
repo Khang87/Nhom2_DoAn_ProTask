@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -27,11 +27,111 @@ class DatabaseHelper {
             username TEXT,
             email TEXT UNIQUE,
             uid TEXT,
-            phone TEXT -- Thêm cột này
+            phone TEXT,
+            photoUrl TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE projects(
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            description TEXT,
+            ownerId TEXT,
+            members TEXT,
+            progress REAL,
+            deadline TEXT,
+            color INTEGER,
+            link TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE tasks(
+            id TEXT PRIMARY KEY,
+            projectId TEXT,
+            title TEXT,
+            description TEXT,
+            assigneeId TEXT,
+            status TEXT,
+            deadline TEXT,
+            isDone INTEGER,
+            FOREIGN KEY (projectId) REFERENCES projects (id) ON DELETE CASCADE
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE projects(
+              id TEXT PRIMARY KEY,
+              name TEXT,
+              description TEXT,
+              ownerId TEXT,
+              members TEXT,
+              progress REAL,
+              deadline TEXT,
+              color INTEGER,
+              link TEXT
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE tasks(
+              id TEXT PRIMARY KEY,
+              projectId TEXT,
+              title TEXT,
+              description TEXT,
+              assigneeId TEXT,
+              status TEXT,
+              deadline TEXT,
+              isDone INTEGER,
+              FOREIGN KEY (projectId) REFERENCES projects (id) ON DELETE CASCADE
+            )
+          ''');
+          await db.execute('ALTER TABLE users ADD COLUMN photoUrl TEXT');
+        }
+      },
     );
+  }
+
+  // --- PROJECT OPERATIONS ---
+  Future<int> insertProject(Map<String, dynamic> project) async {
+    final db = await database;
+    return await db.insert('projects', project, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Map<String, dynamic>>> getProjects() async {
+    final db = await database;
+    return await db.query('projects');
+  }
+
+  Future<int> deleteProject(String id) async {
+    final db = await database;
+    return await db.delete('projects', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- TASK OPERATIONS ---
+  Future<int> insertTask(Map<String, dynamic> task) async {
+    final db = await database;
+    return await db.insert('tasks', task, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Map<String, dynamic>>> getTasksByProject(String projectId) async {
+    final db = await database;
+    return await db.query('tasks', where: 'projectId = ?', whereArgs: [projectId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllTasks() async {
+    final db = await database;
+    return await db.query('tasks');
+  }
+
+  Future<int> updateTask(Map<String, dynamic> task) async {
+    final db = await database;
+    return await db.update('tasks', task, where: 'id = ?', whereArgs: [task['id']]);
+  }
+
+  Future<int> deleteTask(String id) async {
+    final db = await database;
+    return await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
   }
   // Thêm vào class DatabaseHelper
   Future<int> updateUserField(String email, String field, String value) async {

@@ -7,6 +7,10 @@ import 'firebase_options.dart';
 import 'package:protask/provider/theme_provider.dart';
 import 'package:protask/provider/locale_provider.dart';
 import 'package:protask/provider/auth_provider.dart';
+import 'package:protask/provider/project_provider.dart';
+import 'package:protask/provider/task_provider.dart';
+import 'package:protask/service/notification_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 // Screens
 import 'package:protask/screen/login_screen.dart';
@@ -22,8 +26,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Khởi tạo Thông báo
+    await NotificationService.initialize();
   } catch (e) {
-    print("Lỗi khởi tạo Firebase: $e");
+    print("Lỗi khởi tạo: $e");
   }
 
   runApp(
@@ -32,6 +38,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProjectProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
       ],
       child: const MyApp(),
     ),
@@ -44,10 +52,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'ProTask Management',
+      locale: localeProvider.locale,
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: localeProvider.supportedLocales.keys.map((e) => Locale(e)).toList(),
 
       // Điều chỉnh Theme theo hệ thống hoặc lựa chọn của Hùng
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,

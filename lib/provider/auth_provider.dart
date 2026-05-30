@@ -68,19 +68,70 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  String? _verificationId;
+
+  // 🔥 Gửi mã OTP
+  Future<void> sendOTP(String phoneNumber, {
+    required Function(String) onCodeSent,
+    required Function(String) onVerificationFailed,
+  }) async {
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        // Tự động xác thực nếu Firebase nhận diện được (Android)
+        await _auth.signInWithCredential(credential);
+        _checkCurrentUser();
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        onVerificationFailed(e.message ?? "Lỗi xác thực số điện thoại");
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        _verificationId = verificationId;
+        onCodeSent(verificationId);
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        _verificationId = verificationId;
+      },
+    );
+  }
+
+  // 🔥 Xác thực mã OTP
+  Future<void> verifyOTP(String smsCode) async {
+    if (_verificationId == null) throw Exception("Chưa gửi mã OTP");
+    
+    PhoneAuthCredential credential = PhoneAuthProvider.credential(
+      verificationId: _verificationId!,
+      smsCode: smsCode,
+    );
+
+    UserCredential result = await _auth.signInWithCredential(credential);
+    if (result.user != null) {
+      await loginWithFirebase(result.user!);
+    }
+  }
+
+  // 🔥 Thay đổi mật khẩu
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    User? user = _auth.currentUser;
+    if (user == null || user.email == null) throw Exception("Người dùng chưa đăng nhập");
+
+    // Firebase yêu cầu re-authenticate trước khi đổi mật khẩu
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: oldPassword,
+    );
+
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
   // 🔥 Logout sạch
   Future<void> logout() async {
     await _auth.signOut();
-
-    await DatabaseHelper().clearAllUsers(); // optional
-
+    // Không nên xóa sạch users nếu muốn giữ lịch sử, nhưng ở đây theo yêu cầu clean
+    // await DatabaseHelper().clearAllUsers(); 
     _currentUser = null;
     notifyListeners();
-  }
-
-  // 🔥 Quên mật khẩu
-  Future<void> sendPasswordReset(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
   }
 
   Future<void> updateUserPhone(String newPhone) async {

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../provider/theme_provider.dart';
-import '../provider/locale_provider.dart';
-import '../provider/auth_provider.dart'; // Import AuthProvider để gọi logic Firebase
+import '../provider/auth_provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -12,165 +10,171 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  // 1. Tạo controller để lấy Email người dùng nhập
-  final TextEditingController _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  bool _isOTPSent = false;
   bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  // 2. Hàm xử lý gửi Email khôi phục
-  Future<void> _handleResetPassword() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      _showSnackBar("Vui lòng nhập Email của bạn");
+  Future<void> _handleSendOTP() async {
+    String phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng nhập số điện thoại")));
       return;
+    }
+    
+    // Đảm bảo định dạng +84 cho Việt Nam nếu người dùng nhập 0
+    if (phone.startsWith('0')) {
+      phone = '+84${phone.substring(1)}';
+    } else if (!phone.startsWith('+')) {
+      phone = '+84$phone';
     }
 
     setState(() => _isLoading = true);
-
     try {
-      // Gọi hàm gửi mail đổi mật khẩu đã viết trong AuthProvider
-      await authProvider.sendPasswordReset(email);
-
-      _showSnackBar("Link đặt lại mật khẩu đã được gửi vào Email của bạn!");
-
-      // Đợi người dùng đọc thông báo rồi quay lại màn Login
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) Navigator.pop(context);
-      });
+      await context.read<AuthProvider>().sendOTP(
+        phone,
+        onCodeSent: (id) {
+          setState(() {
+            _isOTPSent = true;
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mã OTP đã được gửi!")));
+        },
+        onVerificationFailed: (err) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+        },
+      );
     } catch (e) {
-      _showSnackBar("Email không tồn tại hoặc đã xảy ra lỗi!");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  Future<void> _handleVerifyOTP() async {
+    if (_otpController.text.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      await context.read<AuthProvider>().verifyOTP(_otpController.text);
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mã OTP không đúng hoặc đã hết hạn!")));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    final isDark = themeProvider.isDarkMode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color textColor = isDark ? Colors.white : Colors.black;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey[100],
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        title: Text(_isOTPSent ? "Xác thực OTP" : "Quên mật khẩu", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: Icon(
-              Icons.arrow_back_ios_new,
-              color: isDark ? Colors.white : Colors.black,
-              size: 20
-          ),
+          icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(25),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 40),
-
             Text(
-              localeProvider.getText('forgot_password_title'),
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
-              ),
+              _isOTPSent ? "Nhập mã xác thực" : "Nhập số điện thoại",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
             ),
-
-            const SizedBox(height: 30),
-
+            const SizedBox(height: 10),
             Text(
-              localeProvider.getText('forgot_password_sub'),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                color: isDark ? Colors.white70 : Colors.grey.shade700,
-                height: 1.5,
-              ),
+              _isOTPSent ? "Mã xác thực gồm 6 chữ số đã được gửi tới số điện thoại của bạn." : "Chúng tôi sẽ gửi mã OTP để xác thực tài khoản của bạn.",
+              style: const TextStyle(fontSize: 15, color: Colors.grey),
             ),
-
             const SizedBox(height: 40),
-
-            // TextField gắn controller
-            TextField(
-              controller: _emailController,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              decoration: InputDecoration(
-                hintText: localeProvider.getText('email_hint'),
-                hintStyle: const TextStyle(color: Colors.grey),
-                filled: true,
-                fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                      color: isDark ? Colors.grey.shade700 : Colors.grey.shade300
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                      color: isDark ? Colors.grey.shade700 : Colors.grey.shade300
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF91B9FF), width: 2),
+            if (!_isOTPSent) ...[
+              _buildInputField(
+                label: "Số điện thoại",
+                controller: _phoneController,
+                hint: "0901234567",
+                icon: Icons.phone_android_outlined,
+                keyboardType: TextInputType.phone,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 40),
+              _buildButton("Gửi mã OTP", _handleSendOTP),
+            ] else ...[
+              _buildInputField(
+                label: "Mã OTP",
+                controller: _otpController,
+                hint: "123456",
+                icon: Icons.lock_clock_outlined,
+                keyboardType: TextInputType.number,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 40),
+              _buildButton("Xác nhận", _handleVerifyOTP),
+              Center(
+                child: TextButton(
+                  onPressed: () => setState(() => _isOTPSent = false),
+                  child: const Text("Đổi số điện thoại", style: TextStyle(color: Colors.blue)),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 30),
-
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleResetPassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF91B9FF),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.black)
-                    : Text(
-                  localeProvider.getText('continue_btn'),
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-
-            const Spacer(),
-
-            const Text(
-              "Phiên bản 2.9.0 (39)",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 20),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    required TextInputType keyboardType,
+    required bool isDark,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            prefixIcon: Icon(icon, color: Colors.grey),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildButton(String text, VoidCallback onPressed) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF91B9FF),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.black)
+            : Text(text, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }
