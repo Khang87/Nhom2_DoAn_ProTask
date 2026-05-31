@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/auth_provider.dart';
 import '../provider/theme_provider.dart';
-import '../provider/locale_provider.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,12 +19,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
-    final localeProvider = Provider.of<LocaleProvider>(context);
-
     final List<Widget> _pages = [
       const HomeTab(),
-      Center(child: Text(localeProvider.getText('task_detail_screen'))),
-      Center(child: Text(localeProvider.getText('group_notifications'))),
+      const Center(child: Text("Màn hình Nhiệm vụ chi tiết")),
+      const Center(child: Text("Thông báo nhóm")),
       const ProfileScreen(),
     ];
 
@@ -45,11 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
           currentIndex: _selectedIndex,
           type: BottomNavigationBarType.fixed,
           onTap: (index) => setState(() => _selectedIndex = index),
-          items: [
-            BottomNavigationBarItem(icon: const Icon(Icons.grid_view_outlined), label: localeProvider.getText('projects')),
-            BottomNavigationBarItem(icon: const Icon(Icons.assignment_outlined), label: localeProvider.getText('tasks')),
-            BottomNavigationBarItem(icon: const Icon(Icons.notifications_outlined), label: localeProvider.getText('notifications_tab')),
-            BottomNavigationBarItem(icon: const Icon(Icons.person_outline), label: localeProvider.getText('me')),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.grid_view_outlined), label: "Dự án"),
+            BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), label: "Nhiệm vụ"),
+            BottomNavigationBarItem(icon: Icon(Icons.notifications_outlined), label: "Thông báo"),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Tôi"),
           ],
         ),
       ),
@@ -63,7 +60,6 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final localeProvider = Provider.of<LocaleProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final String username = authProvider.currentUser?['username'] ?? "Bùi Quốc Hùng";
 
@@ -76,13 +72,13 @@ class HomeTab extends StatelessWidget {
           backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           elevation: 0,
           title: Text(
-            localeProvider.getText('app_projects_title'),
+            "ProTask Projects",
             style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
           ),
           actions: [
             IconButton(
               icon: const Icon(Icons.add_circle_outline, color: Colors.blue),
-              onPressed: () => _showCreateProjectDialog(context, isDark, localeProvider),
+              onPressed: () => _showCreateProjectDialog(context, isDark),
             ),
           ],
         ),
@@ -92,10 +88,10 @@ class HomeTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("${localeProvider.getText('welcome')}, $username 👋", style: const TextStyle(color: Colors.grey)),
+                Text("Chào mừng, $username 👋", style: const TextStyle(color: Colors.grey)),
                 const SizedBox(height: 25),
 
-                Text(localeProvider.getText('running_projects'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text("Dự án đang chạy", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
 
                 // Dự án cuộn ngang có link nộp bài
@@ -104,20 +100,20 @@ class HomeTab extends StatelessWidget {
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     children: [
-                      _buildProjectCard("App Coffee Shop", "Hùng (L), Huy, Khang", 0.7, Colors.orange, isDark, localeProvider),
-                      _buildProjectCard("Website Đồ án", "Hùng (L), Nam", 0.3, Colors.blue, isDark, localeProvider),
+                      _buildProjectCard("App Coffee Shop", "Hùng (L), Huy, Khang", 0.7, Colors.orange, isDark),
+                      _buildProjectCard("Website Đồ án", "Hùng (L), Nam", 0.3, Colors.blue, isDark),
                     ],
                   ),
                 ),
 
                 const SizedBox(height: 30),
-                Text(localeProvider.getText('your_tasks'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text("Nhiệm vụ của bạn", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
 
                 // Danh sách Task (SỬA LỖI CHỮ TO Ở ĐÂY)
-                _buildTaskItem("Thiết kế UI Login", "Đồ án Mobile", localeProvider.getText('today'), true, isDark),
-                _buildTaskItem("Fix lỗi Database", "Website", localeProvider.getText('overdue'), false, isDark, isOverdue: true),
-                _buildTaskItem("Làm slide báo cáo", "Nhóm 1", "2 ${localeProvider.getText('days_left')}", false, isDark),
+                _buildTaskItem("Thiết kế UI Login", "Đồ án Mobile", "Hôm nay", true, isDark),
+                _buildTaskItem("Fix lỗi Database", "Website", "Hết hạn", false, isDark, isOverdue: true),
+                _buildTaskItem("Làm slide báo cáo", "Nhóm 1", "2 ngày tới", false, isDark),
               ],
             ),
           ),
@@ -126,7 +122,7 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildProjectCard(String name, String members, double progress, Color color, bool isDark, LocaleProvider localeProvider) {
+  Widget _buildProjectCard(String name, String members, double progress, Color color, bool isDark) {
     return Container(
       width: 250,
       margin: const EdgeInsets.only(right: 15),
@@ -159,7 +155,7 @@ class HomeTab extends StatelessWidget {
               children: [
                 Icon(Icons.link, size: 14, color: color),
                 const SizedBox(width: 5),
-                Text(localeProvider.getText('link_task'), style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text("Link nộp task", style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -213,7 +209,7 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  void _showCreateProjectDialog(BuildContext context, bool isDark, LocaleProvider localeProvider) {
+  void _showCreateProjectDialog(BuildContext context, bool isDark) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -224,16 +220,16 @@ class HomeTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(localeProvider.getText('create_new_project'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text("Tạo dự án mới", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            TextField(decoration: InputDecoration(labelText: localeProvider.getText('project_name'), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+            TextField(decoration: InputDecoration(labelText: "Tên dự án", border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
             const SizedBox(height: 15),
-            TextField(decoration: InputDecoration(labelText: localeProvider.getText('link_task_url'), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+            TextField(decoration: InputDecoration(labelText: "Link nộp bài (URL)", border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, minimumSize: const Size(double.infinity, 50)),
-              child: Text(localeProvider.getText('create_now'), style: const TextStyle(color: Colors.white)),
+              child: const Text("Tạo ngay", style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 20),
           ],
