@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../provider/locale_provider.dart';
 
 class ChangePasswordScreen extends StatelessWidget {
   const ChangePasswordScreen({super.key});
@@ -6,6 +8,7 @@ class ChangePasswordScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     // 1. Định nghĩa màu chữ linh hoạt
     final Color textColor = isDark ? Colors.white : Colors.black;
@@ -15,7 +18,7 @@ class ChangePasswordScreen extends StatelessWidget {
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey[100],
       appBar: AppBar(
         // AppBar cũng cần đổi màu chữ tiêu đề
-        title: Text("Đổi mật khẩu", style: TextStyle(color: textColor)),
+        title: Text(localeProvider.getText('change_password_title'), style: TextStyle(color: textColor)),
         centerTitle: true,
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: 0,
@@ -25,9 +28,9 @@ class ChangePasswordScreen extends StatelessWidget {
         padding: const EdgeInsets.all(25),
         child: Column(
           children: [
-            _input("Mật khẩu hiện tại", isDark, textColor),
+            _input(localeProvider.getText('current_password'), isDark, textColor),
             const SizedBox(height: 20),
-            _input("Mật khẩu mới", isDark, textColor),
+            _input(localeProvider.getText('new_password'), isDark, textColor),
             Align(
                 alignment: Alignment.centerRight,
                 child: Text("0/64", style: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600))
@@ -35,10 +38,10 @@ class ChangePasswordScreen extends StatelessWidget {
             const SizedBox(height: 20),
 
             // 2. Truyền màu subTextColor vào các dòng check
-            _check("Từ 9 đến 64 ký tự", subTextColor),
-            _check("Ít nhất một chữ cái", subTextColor),
-            _check("Ít nhất một chữ số", subTextColor),
-            _check("Chỉ chữ cái, chữ số, khoảng trắng và ký tự đặc biệt", subTextColor),
+            _check(localeProvider.getText('char_limit'), subTextColor),
+            _check(localeProvider.getText('at_least_one_letter'), subTextColor),
+            _check(localeProvider.getText('at_least_one_number'), subTextColor),
+            _check(localeProvider.getText('special_chars_only'), subTextColor),
 
             const Spacer(),
 
@@ -52,7 +55,7 @@ class ChangePasswordScreen extends StatelessWidget {
                     shape: const StadiumBorder()
                 ),
                 child: Text(
-                    "LƯU",
+                    localeProvider.getText('save'),
                     style: TextStyle(
                         color: isDark ? Colors.grey : Colors.grey.shade700,
                         fontWeight: FontWeight.bold

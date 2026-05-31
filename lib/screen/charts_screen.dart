@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../provider/task_provider.dart';
+import '../provider/locale_provider.dart';
 
 class ChartsScreen extends StatelessWidget {
   const ChartsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Báo cáo tiến độ")),
+      appBar: AppBar(title: Text(localeProvider.getText('charts_title'))),
       body: Consumer<TaskProvider>(
         builder: (context, taskProvider, child) {
           final tasks = taskProvider.tasks;
           if (tasks.isEmpty) {
-            return const Center(child: Text("Chưa có dữ liệu thống kê"));
+            return Center(child: Text(localeProvider.getText('no_chart_data')));
           }
 
           int done = tasks.where((t) => t.isDone).length;
@@ -24,7 +27,7 @@ class ChartsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                const Text("Tỷ lệ hoàn thành công việc", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(localeProvider.getText('task_completion_rate'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 50),
                 SizedBox(
                   height: 200,
@@ -53,8 +56,8 @@ class ChartsScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildLegendItem("Hoàn thành", Colors.green),
-                    _buildLegendItem("Chưa hoàn thành", Colors.blue),
+                    _buildLegendItem(localeProvider.getText('completed'), Colors.green),
+                    _buildLegendItem(localeProvider.getText('incomplete'), Colors.blue),
                   ],
                 ),
                 const SizedBox(height: 30),

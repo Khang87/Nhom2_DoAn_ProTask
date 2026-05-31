@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'package:provider/provider.dart';
 import '../provider/task_provider.dart';
+import '../provider/locale_provider.dart';
 import 'package:intl/intl.dart';
 
 class TimelineScreen extends StatefulWidget {
@@ -20,8 +21,10 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Timeline Công việc")),
+      appBar: AppBar(title: Text(localeProvider.getText('timeline_title'))),
       body: Consumer<TaskProvider>(
         builder: (context, taskProvider, child) {
           if (taskProvider.isLoading) {
@@ -29,7 +32,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
           }
           final tasks = taskProvider.tasks;
           if (tasks.isEmpty) {
-            return const Center(child: Text("Chưa có công việc nào"));
+            return Center(child: Text(localeProvider.getText('no_tasks')));
           }
           // Sao chép danh sách để sắp xếp
           final sortedTasks = List.from(tasks);

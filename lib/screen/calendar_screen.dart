@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:provider/provider.dart';
 import '../provider/task_provider.dart';
+import '../provider/locale_provider.dart';
 import 'package:intl/intl.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -24,8 +25,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Lịch Công việc")),
+      appBar: AppBar(title: Text(localeProvider.getText('calendar_title'))),
       body: Column(
         children: [
           TableCalendar(
@@ -53,7 +56,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     .toList();
 
                 if (selectedTasks.isEmpty) {
-                  return const Center(child: Text("Không có công việc nào trong ngày này"));
+                  return Center(child: Text(localeProvider.getText('no_tasks_day')));
                 }
 
                 return ListView.builder(
