@@ -1,51 +1,59 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class ProjectMember {
+  final String userId;
+  final String role; // 'owner', 'manager', 'member'
+
+  ProjectMember({required this.userId, required this.role});
+
+  factory ProjectMember.fromMap(Map<String, dynamic> map) {
+    return ProjectMember(
+      userId: map['user_id'] ?? '',
+      role: map['role'] ?? 'member',
+    );
+  }
+
+  Map<String, dynamic> toMap() => {'user_id': userId, 'role': role};
+}
+
 class ProjectModel {
-  final String id;
-  final String name;
+  final String projectId;
+  final String title;
   final String description;
   final String ownerId;
-  final String members;
-  final double progress;
-  final DateTime deadline;
-  final int color;
-  final String? link;
+  final List<ProjectMember> members;
+  final DateTime createdAt;
 
   ProjectModel({
-    required this.id,
-    required this.name,
+    required this.projectId,
+    required this.title,
     required this.description,
     required this.ownerId,
     required this.members,
-    required this.progress,
-    required this.deadline,
-    required this.color,
-    this.link,
+    required this.createdAt,
   });
+
+  factory ProjectModel.fromMap(Map<String, dynamic> map, String id) {
+    return ProjectModel(
+      projectId: id,
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      ownerId: map['owner_id'] ?? '',
+      members: (map['members'] as List?)
+              ?.map((m) => ProjectMember.fromMap(m))
+              .toList() ??
+          [],
+      createdAt: (map['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'name': name,
+      'title': title,
       'description': description,
-      'ownerId': ownerId,
-      'members': members,
-      'progress': progress,
-      'deadline': deadline.toIso8601String(),
-      'color': color,
-      'link': link,
+      'owner_id': ownerId,
+      'members': members.map((m) => m.toMap()).toList(),
+      'created_at': Timestamp.fromDate(createdAt),
     };
-  }
-
-  factory ProjectModel.fromMap(Map<String, dynamic> map) {
-    return ProjectModel(
-      id: map['id'],
-      name: map['name'],
-      description: map['description'] ?? '',
-      ownerId: map['ownerId'] ?? '',
-      members: map['members'] ?? '',
-      progress: (map['progress'] ?? 0.0).toDouble(),
-      deadline: DateTime.parse(map['deadline'] ?? DateTime.now().toIso8601String()),
-      color: map['color'] ?? 0xFF2196F3,
-      link: map['link'],
-    );
   }
 }

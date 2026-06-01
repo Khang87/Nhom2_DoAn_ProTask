@@ -7,31 +7,21 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:528429507807:android:85777c9e764f4bd21d756a",
+        "mobilesdk_app_id": "1:528429507807:android:c328661738086b0f1d756a",
         "android_client_info": {
-          "package_name": "com.example.doanltdd"
+          "package_name": "com.nhom2.protask"
         }
       },
-      "oauth_client": [],
-      "api_key": [
+      "oauth_client": [
         {
-          "current_key": "AIzaSyBXobom8sNdJISA4ItgWQCttRbP0zJT7PI"
+          "client_id": "528429507807-8c4gnkest4e5hq02jasisr751gt6pas0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nhom2.protask",
+            "certificate_hash": "ebb9dab4e4b8e9d3b1b965b765afa89953d91254"
+          }
         }
       ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:528429507807:android:44f02c6494760a4f1d756a",
-        "android_client_info": {
-          "package_name": "com.example.protask"
-        }
-      },
-      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyBXobom8sNdJISA4ItgWQCttRbP0zJT7PI"

@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'app_theme.dart';
 
 // Providers
 import 'package:protask/provider/theme_provider.dart';
@@ -9,8 +10,9 @@ import 'package:protask/provider/locale_provider.dart';
 import 'package:protask/provider/auth_provider.dart';
 import 'package:protask/provider/project_provider.dart';
 import 'package:protask/provider/task_provider.dart';
+import 'package:protask/provider/comment_provider.dart';
+import 'package:protask/provider/chat_provider.dart';
 import 'package:protask/service/notification_service.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 // Screens
 import 'package:protask/screen/login_screen.dart';
@@ -22,11 +24,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Khởi tạo Firebase
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // Khởi tạo Thông báo
     await NotificationService.initialize();
   } catch (e) {
     print("Lỗi khởi tạo: $e");
@@ -40,6 +40,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProjectProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => CommentProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: const MyApp(),
     ),
@@ -52,68 +54,86 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ProTask Management',
-      locale: localeProvider.locale,
-      localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: localeProvider.supportedLocales.keys.map((e) => Locale(e)).toList(),
+      title: 'ProTask',
 
-      // Điều chỉnh Theme theo hệ thống hoặc lựa chọn của Hùng
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
 
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
-
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
-
-      //  LOGIC ĐIỀU HƯỚNG TỰ ĐỘNG
+      // LOGIC ĐIỀU HƯỚNG TỰ ĐỘNG
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
-          // . Trong khi đang nạp dữ liệu từ SQLite/Firebase
           if (auth.isLoading) {
-            return const Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 20),
-                    Text("Đang khởi động ProTask...", style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ),
-            );
+            return const _SplashScreen();
           }
 
-          // . Nếu đã có dữ liệu người dùng (Đã login)
           if (auth.isLoggedIn) {
             return const HomeScreen();
           }
 
-          // . Nếu chưa đăng nhập
           return const LoginScreen();
         },
       ),
 
-      // Các routes để điều hướng bằng Navigator.pushNamed
       routes: {
         '/register': (context) => const RegisterScreen(),
         '/forgot_password': (context) => const ForgotPasswordScreen(),
         '/home': (context) => const HomeScreen(),
       },
+    );
+  }
+}
+
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppGradients.brand),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                ),
+                child: const Icon(Icons.task_alt_rounded, size: 40, color: Colors.white),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'ProTask',
+                style: AppTextStyles.display(false).copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Quản lý dự án thông minh',
+                style: AppTextStyles.body(false).copyWith(color: Colors.white70),
+              ),
+              const SizedBox(height: 48),
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

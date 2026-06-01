@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../app_theme.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -8,7 +10,6 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  // 1. Khai báo các biến lưu trạng thái công tắc
   bool _isEmailEnabled = true;
   bool _isPushEnabled = false;
 
@@ -16,99 +17,132 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Màu chữ linh hoạt theo theme
-    final Color textColor = isDark ? Colors.white : Colors.black;
-    final Color subTextColor = isDark ? Colors.white70 : Colors.black87;
-
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey[100],
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 20),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              margin: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: (isDark ? AppColors.darkCard : AppColors.lightCard),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                size: 20,
+              ),
+            ),
+          ),
         ),
         title: Text(
-            "Thông báo",
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)
+          "Cài đặt Thông báo",
+          style: AppTextStyles.heading2(isDark),
         ),
         centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            height: 1,
+          ),
+        ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  "Cập nhật ca làm việc và lịch trình",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: textColor
-                  )
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Hệ thống thông báo",
+              style: AppTextStyles.heading3(isDark).copyWith(color: AppColors.primary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Quản lý cách bạn nhận thông tin cập nhật về dự án, công việc và lịch trình.",
+              style: AppTextStyles.body(isDark).copyWith(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
               ),
-              const SizedBox(height: 20),
-
-              // 2. Truyền biến và hàm setState vào _tile
-              _tile(
-                Icons.email_outlined,
-                "Email",
-                "Gửi đến email chính của bạn",
-                _isEmailEnabled,
-                    (bool value) {
-                  setState(() {
-                    _isEmailEnabled = value;
-                  });
-                  // Hùng có thể thêm logic lưu vào SharedPreferences hoặc DB ở đây
-                  print("Email notification: $value");
-                },
-                textColor,
+            ),
+            const SizedBox(height: 24),
+            
+            AppCard(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  _buildSwitchTile(
+                    icon: Icons.email_rounded,
+                    color: AppColors.secondary,
+                    title: "Email",
+                    subtitle: "Nhận cập nhật qua hộp thư điện tử",
+                    value: _isEmailEnabled,
+                    onChanged: (val) => setState(() => _isEmailEnabled = val),
+                    isDark: isDark,
+                  ),
+                  Divider(height: 1, indent: 64, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  _buildSwitchTile(
+                    icon: Icons.notifications_active_rounded,
+                    color: const Color(0xFFEF4444),
+                    title: "Thông báo đẩy (Push)",
+                    subtitle: "Thông báo trực tiếp trên thiết bị",
+                    value: _isPushEnabled,
+                    onChanged: (val) => setState(() => _isPushEnabled = val),
+                    isDark: isDark,
+                  ),
+                ],
               ),
-
-              _tile(
-                Icons.notifications_none,
-                "Thông báo đẩy",
-                "Gửi đến thiết bị của bạn ngay lập tức",
-                _isPushEnabled,
-                    (bool value) {
-                  setState(() {
-                    _isPushEnabled = value;
-                  });
-                  print("Push notification: $value");
-                },
-                textColor,
-              ),
-            ]
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Cập nhật hàm _tile để nhận callback onChanged và màu sắc
-  Widget _tile(
-      IconData icon,
-      String title,
-      String sub,
-      bool val,
-      ValueChanged<bool> onChanged,
-      Color textColor,
-      ) {
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required bool isDark,
+  }) {
     return ListTile(
-      contentPadding: EdgeInsets.zero, // Bỏ padding mặc định để căn lề đẹp hơn
-      leading: Icon(icon, color: Colors.grey),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
       title: Text(
-          title,
-          style: TextStyle(fontWeight: FontWeight.bold, color: textColor)
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+        ),
       ),
       subtitle: Text(
-          sub,
-          style: const TextStyle(color: Colors.grey, fontSize: 12)
+        subtitle,
+        style: AppTextStyles.caption(isDark).copyWith(fontSize: 13),
       ),
       trailing: Switch(
-        value: val,
+        value: value,
         onChanged: onChanged,
-        activeColor: Colors.blue,
+        activeColor: AppColors.primary,
+        activeTrackColor: AppColors.primary.withOpacity(0.5),
+        inactiveThumbColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+        inactiveTrackColor: isDark ? AppColors.darkBorder : AppColors.lightBorder,
       ),
     );
   }

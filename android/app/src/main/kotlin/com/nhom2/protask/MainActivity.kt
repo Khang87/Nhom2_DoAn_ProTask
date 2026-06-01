@@ -1,4 +1,4 @@
-package com.example.protask
+package com.nhom2.protask
 
 import io.flutter.embedding.android.FlutterActivity
 

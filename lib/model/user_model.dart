@@ -1,38 +1,41 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
-  final String? id;
-  final String username;
-  final String email;
   final String uid;
-  final String? phone;
-  final String? photoUrl;
+  final String email;
+  final String displayName;
+  final String photoUrl;
+  final List<String> joinedProjects;
+  final DateTime createdAt;
 
   UserModel({
-    this.id,
-    required this.username,
-    required this.email,
     required this.uid,
-    this.phone,
-    this.photoUrl,
+    required this.email,
+    required this.displayName,
+    required this.photoUrl,
+    required this.joinedProjects,
+    required this.createdAt,
   });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'username': username,
-      'email': email,
-      'uid': uid,
-      'phone': phone,
-      'photoUrl': photoUrl,
-    };
-  }
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
-      id: map['id']?.toString(),
-      username: map['username'] ?? '',
-      email: map['email'] ?? '',
       uid: map['uid'] ?? '',
-      phone: map['phone'],
-      photoUrl: map['photoUrl'],
+      email: map['email'] ?? '',
+      displayName: map['display_name'] ?? '',
+      photoUrl: map['photo_url'] ?? '',
+      joinedProjects: List<String>.from(map['joined_projects'] ?? []),
+      createdAt: (map['created_at'] as Timestamp).toDate(),
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'email': email,
+      'display_name': displayName,
+      'photo_url': photoUrl,
+      'joined_projects': joinedProjects,
+      'created_at': Timestamp.fromDate(createdAt),
+    };
   }
 }

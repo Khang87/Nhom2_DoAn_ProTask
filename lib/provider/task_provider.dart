@@ -1,56 +1,83 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import '../service/firestore_service.dart';
 import '../model/task_model.dart';
-import 'dart:async';
-
+import '../service/firestore_service.dart';
+import '../service/storage_service.dart';
 class TaskProvider with ChangeNotifier {
-  final FirestoreService _firestore = FirestoreService();
+  final FirestoreService _firestoreService = FirestoreService();
   List<TaskModel> _tasks = [];
   bool _isLoading = false;
-  StreamSubscription? _subscription;
 
   List<TaskModel> get tasks => _tasks;
   bool get isLoading => _isLoading;
 
-  TaskProvider() {
-    fetchAllTasks();
+  List<TaskModel> getTasksByStatus(TaskStatus status) {
+    return _tasks.where((task) => task.status == status).toList();
   }
 
-  void fetchTasksByProject(String projectId) {
+  // Lắng nghe tất cả task của các dự án mà user tham gia
+  void listenToAllTasks(List<String> projectIds) {
     _isLoading = true;
-    _subscription?.cancel();
-    _subscription = _firestore.getTasksByProject(projectId).listen((data) {
-      _tasks = data;
+    notifyListeners();
+
+    _firestoreService.streamAllUserTasks(projectIds).listen((taskList) {
+      _tasks = taskList;
       _isLoading = false;
       notifyListeners();
     });
   }
 
-  void fetchAllTasks() {
+  // Compatibility method for older screens - now calls the real logic
+  Future<void> fetchAllTasks() async {
+    // This is now handled by listenToAllTasks called from screens or home
+  }
+
+  void listenToTasks(String projectId) {
     _isLoading = true;
-    _subscription?.cancel();
-    _subscription = _firestore.getAllTasks().listen((data) {
-      _tasks = data;
+    notifyListeners();
+
+    _firestoreService.streamTasks(projectId).listen((taskList) {
+      _tasks = taskList;
       _isLoading = false;
       notifyListeners();
     });
   }
 
-  Future<void> addTask(TaskModel task) async {
-    await _firestore.saveTask(task);
+  Future<void> createTask(TaskModel task, {List<File>? localFiles}) async {
+    String taskId = await _firestoreService.createTask(task);
+    
+    if (localFiles != null && localFiles.isNotEmpty) {
+      List<AttachmentModel> uploadedAttachments = [];
+      final storageService = StorageService();
+      
+      for (var file in localFiles) {
+        AttachmentModel? attachment = await storageService.uploadFile('tasks/$taskId', file);
+        if (attachment != null) {
+          uploadedAttachments.add(attachment);
+        }
+      }
+      
+      if (uploadedAttachments.isNotEmpty) {
+        await _firestoreService.updateTaskAttachments(taskId, uploadedAttachments);
+      }
+    }
   }
 
-  Future<void> updateTask(TaskModel task) async {
-    await _firestore.saveTask(task);
+  Future<void> updateStatus(String taskId, TaskStatus newStatus) async {
+    await _firestoreService.updateTaskStatus(taskId, newStatus);
   }
 
-  Future<void> deleteTask(String id) async {
-    await _firestore.deleteTask(id);
+  Future<void> updateTaskDetails(String taskId, String title, String description, TaskPriority priority, List<String> assignees, DateTime? dueDate) async {
+    await _firestoreService.updateTaskDetails(taskId, {
+      'title': title,
+      'description': description,
+      'priority': priority.toString().split('.').last,
+      'assignees': assignees,
+      'due_date': dueDate,
+    });
   }
 
-  @override
-  void dispose() {
-    _subscription?.cancel();
-    super.dispose();
+  Future<void> deleteTask(String taskId) async {
+    await _firestoreService.deleteTask(taskId);
   }
 }
