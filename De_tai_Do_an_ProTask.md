@@ -88,7 +88,10 @@ Hệ thống ưu tiên sử dụng kiến trúc Không máy chủ (Serverless) t
 - **Nghiệp vụ quản lý Task:**
   - Khởi tạo đầu việc kèm thông tin chi tiết: Tiêu đề, mô tả yêu cầu, ngày bắt đầu và thời hạn hoàn thành (Deadline).
   - Phân loại độ ưu tiên rõ ràng: Thấp (Low), Trung bình (Medium), Cao (High).
-  - Thiết lập trạng thái vòng đời công việc: Cần làm (To Do) $ightarrow$ Đang xử lý (In Progress) $ightarrow$ Chờ kiểm duyệt (Review) $ightarrow$ Hoàn thành (Done).
+  - Thiết lập trạng thái vòng đời công việc: Cần làm (To Do) $
+ightarrow$ Đang xử lý (In Progress) $
+ightarrow$ Chờ kiểm duyệt (Review) $
+ightarrow$ Hoàn thành (Done).
   - Gán người chịu trách nhiệm chính (Assignee) trực tiếp cho một hoặc nhiều thành viên trong dự án.
 
 ### 3.3. Phân hệ Cộng tác & Tương tác (Collaboration Module)
@@ -237,7 +240,7 @@ Dưới đây là danh sách các tính năng nâng cao vừa được hoàn thi
 - **Quản lý Thành viên (Manage Members):**
   - **Cách test:** Tại menu ⚙️ (Cài đặt) -> Chọn "Quản lý thành viên". Sẽ hiện ra danh sách các thành viên trong dự án.
   - **Kết quả mong muốn:**
-    - Owner có thể Kick (Xóa) thành viên.
+    - Owner có thể Kick (Xóa) thành viên.ơ
     - Owner có thể Thăng cấp (Promote) thành viên lên làm Manager.
     - Owner có thể Hạ cấp (Demote) Manager xuống làm Member.
 - **Xóa Công việc (Delete Task):**

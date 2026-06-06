@@ -611,6 +611,7 @@ class HomeTab extends StatelessWidget {
   void _showCreateProjectDialog(BuildContext context, bool isDark, String userId, LocaleProvider localeProvider) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
+    final emailsController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -675,6 +676,15 @@ class HomeTab extends StatelessWidget {
                   prefixIcon: const Icon(Icons.description_outlined, color: AppColors.primary, size: 20),
                 ),
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailsController,
+                style: AppTextStyles.body(isDark),
+                decoration: InputDecoration(
+                  labelText: localeProvider.getText('home_project_members'),
+                  prefixIcon: const Icon(Icons.group_add_outlined, color: AppColors.primary, size: 20),
+                ),
+              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -683,8 +693,9 @@ class HomeTab extends StatelessWidget {
                   icon: Icons.rocket_launch_rounded,
                   onTap: () {
                     if (titleController.text.isNotEmpty) {
+                      List<String> emails = emailsController.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
                       Provider.of<ProjectProvider>(context, listen: false)
-                          .createProject(titleController.text, descController.text, userId);
+                          .createProject(titleController.text, descController.text, userId, emails);
                       Navigator.pop(context);
                     }
                   },

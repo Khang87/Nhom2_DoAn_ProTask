@@ -23,244 +23,262 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      body: Scrollbar(
-        thickness: 6,
-        radius: const Radius.circular(10),
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-          slivers: [
-            // Header with avatar
-            SliverAppBar(
-              expandedHeight: 260.0,
-              pinned: true,
-              stretch: true,
-              backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-              elevation: 0,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                title: Text(
-                  "Tài khoản",
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 20, fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 280.0,
+            pinned: true,
+            stretch: true,
+            backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [AppColors.darkBg, AppColors.darkCard.withOpacity(0.8)]
+                        : [AppColors.lightBg, AppColors.primary.withOpacity(0.05)],
                   ),
                 ),
-                stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
-                background: Container(
-                  color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                  child: SafeArea(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 10),
-                        // Avatar
-                        Stack(
+                child: SafeArea(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyProfileScreen())),
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
                             Container(
-                              width: 90, height: 90,
+                              width: 100, height: 100,
                               decoration: BoxDecoration(
-                                color: isDark ? AppColors.darkCard : AppColors.lightCard,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: AppColors.primary, width: 2),
-                                boxShadow: AppShadows.card(isDark),
+                                gradient: AppGradients.brand,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
                               ),
-                              child: Center(
-                                child: Text(
-                                  username.isNotEmpty ? username[0].toUpperCase() : "U",
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 36, fontWeight: FontWeight.w800, color: AppColors.primary,
+                              child: Padding(
+                                padding: const EdgeInsets.all(3.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isDark ? AppColors.darkCard : Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      username.isNotEmpty ? username[0].toUpperCase() : "U",
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 40, fontWeight: FontWeight.w800,
+                                        color: isDark ? Colors.white : AppColors.primary,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                             Positioned(
-                              bottom: 0, right: 0,
+                              bottom: 0, right: 4,
                               child: Container(
-                                width: 28, height: 28,
+                                width: 32, height: 32,
                                 decoration: BoxDecoration(
-                                  color: AppColors.statusDone,
+                                  gradient: AppGradients.brand,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: isDark ? AppColors.darkBg : AppColors.lightBg, width: 2),
+                                  border: Border.all(color: isDark ? AppColors.darkBg : Colors.white, width: 3),
                                 ),
-                                child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+                                child: const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          username,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 22, fontWeight: FontWeight.w800,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        username,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 24, fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : AppColors.textPrimaryLight,
                         ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            user?.email ?? "",
-                            style: GoogleFonts.inter(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                  ),
-                  onPressed: () => themeProvider.toggleTheme(),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-
-            // Settings list
-            SliverToBoxAdapter(
-              child: Transform.translate(
-                offset: const Offset(0, -20),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                    borderRadius: BorderRadius.circular(AppRadius.xl),
-                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                    boxShadow: AppShadows.card(isDark),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildSectionLabel("CHUNG", isDark),
-                      _buildTile(
-                        context,
-                        icon: Icons.language_rounded,
-                        color: AppColors.secondary,
-                        label: "Ngôn ngữ",
-                        subtitle: localeProvider.currentLanguageNativeName,
-                        isDark: isDark,
-                        onTap: () => _showLanguageDialog(context, isDark, localeProvider),
                       ),
-                      _buildDivider(isDark),
-                      _buildTile(
-                        context,
-                        icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                        color: const Color(0xFFF59E0B),
-                        label: "Giao diện",
-                        subtitle: isDark ? "Tối" : "Sáng",
-                        isDark: isDark,
-                        onTap: () => themeProvider.toggleTheme(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            SliverToBoxAdapter(
-              child: Transform.translate(
-                offset: const Offset(0, -10),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                    borderRadius: BorderRadius.circular(AppRadius.xl),
-                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                    boxShadow: AppShadows.card(isDark),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildSectionLabel("TÀI KHOẢN", isDark),
-                      _buildTile(
-                        context,
-                        icon: Icons.account_circle_rounded,
-                        color: AppColors.primary,
-                        label: "Hồ sơ cá nhân",
-                        isDark: isDark,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyProfileScreen())),
-                      ),
-                      _buildDivider(isDark),
-                      _buildTile(
-                        context,
-                        icon: Icons.notifications_rounded,
-                        color: const Color(0xFFEF4444),
-                        label: "Thông báo",
-                        isDark: isDark,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
-                      ),
-                      _buildDivider(isDark),
-                      _buildTile(
-                        context,
-                        icon: Icons.lock_rounded,
-                        color: const Color(0xFF8B5CF6),
-                        label: "Đổi mật khẩu",
-                        isDark: isDark,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
-                      ),
-                      _buildDivider(isDark),
-                      _buildTile(
-                        context,
-                        icon: Icons.logout_rounded,
-                        color: const Color(0xFFEF4444),
-                        label: "Đăng xuất",
-                        isDark: isDark,
-                        isDestructive: true,
-                        onTap: () => _showLogoutDialog(context, isDark, authProvider),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Version
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 40, top: 10),
-                child: Center(
-                  child: Column(
-                    children: [
+                      const SizedBox(height: 8),
                       Container(
-                        width: 44, height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          gradient: AppGradients.brand,
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            )
+                          color: isDark ? Colors.white.withOpacity(0.1) : AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.email_rounded, size: 14, color: isDark ? Colors.white70 : AppColors.primary),
+                            const SizedBox(width: 6),
+                            Text(
+                              user?.email ?? "",
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: isDark ? Colors.white70 : AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
-                        child: const Icon(Icons.task_alt_rounded, color: Colors.white, size: 24),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        "ProTask v1.0.0",
-                        style: AppTextStyles.captionBold(isDark).copyWith(fontSize: 14),
-                      ),
-                      Text(
-                        "HUIT 2025 · Nhóm 2",
-                        style: AppTextStyles.caption(isDark),
-                      ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                ),
+                onPressed: () => themeProvider.toggleTheme(),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+
+          // Settings Blocks
+          SliverToBoxAdapter(
+            child: Transform.translate(
+              offset: const Offset(0, -20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    // System Settings Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkCard : Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: AppShadows.card(isDark),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildSectionLabel("HỆ THỐNG", isDark),
+                          _buildTile(
+                            context,
+                            icon: Icons.language_rounded,
+                            color: AppColors.secondary,
+                            label: "Ngôn ngữ",
+                            subtitle: localeProvider.currentLanguageNativeName,
+                            isDark: isDark,
+                            onTap: () => _showLanguageDialog(context, isDark, localeProvider),
+                          ),
+                          _buildDivider(isDark),
+                          _buildTile(
+                            context,
+                            icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                            color: const Color(0xFFF59E0B),
+                            label: "Giao diện",
+                            subtitle: isDark ? "Tối" : "Sáng",
+                            isDark: isDark,
+                            onTap: () => themeProvider.toggleTheme(),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Action Settings Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkCard : Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: AppShadows.card(isDark),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildSectionLabel("BẢO MẬT & THÔNG BÁO", isDark),
+                          _buildTile(
+                            context,
+                            icon: Icons.notifications_rounded,
+                            color: const Color(0xFFEF4444),
+                            label: "Thông báo",
+                            isDark: isDark,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                          ),
+                          _buildDivider(isDark),
+                          _buildTile(
+                            context,
+                            icon: Icons.lock_rounded,
+                            color: const Color(0xFF8B5CF6),
+                            label: "Đổi mật khẩu",
+                            isDark: isDark,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+                          ),
+                          _buildDivider(isDark),
+                          _buildTile(
+                            context,
+                            icon: Icons.logout_rounded,
+                            color: const Color(0xFFEF4444),
+                            label: "Đăng xuất",
+                            isDark: isDark,
+                            isDestructive: true,
+                            onTap: () => _showLogoutDialog(context, isDark, authProvider),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Version Footer
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 40, top: 20),
+              child: Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.brand,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "ProTask v1.0.0",
+                      style: AppTextStyles.captionBold(isDark).copyWith(fontSize: 14),
+                    ),
+                    Text(
+                      "Elevating Productivity",
+                      style: AppTextStyles.caption(isDark),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

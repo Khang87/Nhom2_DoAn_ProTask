@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../app_theme.dart';
 import '../provider/theme_provider.dart';
@@ -44,16 +45,54 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
+    final loginInput = _emailController.text.trim();
     final password = _passController.text.trim();
-    if (email.isEmpty || password.isEmpty) {
+    
+    if (loginInput.isEmpty || password.isEmpty) {
       _showSnackBar("Vui lòng nhập đầy đủ thông tin");
       return;
     }
+    
     setState(() => _isLoading = true);
+    
+    String emailToLogin = loginInput;
+
     try {
+      // 1. Kiểm tra nếu nhập vào là số điện thoại (bắt đầu bằng 0 hoặc +)
+      if (RegExp(r'^[0-9+]+$').hasMatch(loginInput)) {
+        String phoneSearch = loginInput.replaceAll(RegExp(r'[^\d+]'), '');
+        if (phoneSearch.startsWith('+840')) {
+          phoneSearch = '+84${phoneSearch.substring(4)}';
+        } else if (phoneSearch.startsWith('840')) {
+          phoneSearch = '+84${phoneSearch.substring(3)}';
+        } else if (phoneSearch.startsWith('84') && !phoneSearch.startsWith('+84')) {
+          phoneSearch = '+84${phoneSearch.substring(2)}';
+        } else if (phoneSearch.startsWith('0')) {
+          phoneSearch = '+84${phoneSearch.substring(1)}';
+        } else if (!phoneSearch.startsWith('+')) {
+          phoneSearch = '+84$phoneSearch';
+        }
+
+        // Tìm email tương ứng với sdt này trong Firestore
+        var query = await FirebaseFirestore.instance
+            .collection('users')
+            .where('phone', isEqualTo: phoneSearch)
+            .limit(1)
+            .get();
+
+        if (query.docs.isNotEmpty) {
+          emailToLogin = query.docs.first.data()['email'] ?? loginInput;
+        } else {
+          _showSnackBar("Số điện thoại chưa được liên kết!");
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      // 2. Tiến hành đăng nhập bằng Email/Password
       UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+          .signInWithEmailAndPassword(email: emailToLogin, password: password);
+          
       final firebaseUser = userCredential.user;
       if (firebaseUser != null && mounted) {
         await Provider.of<AuthProvider>(context, listen: false).loginWithFirebase(firebaseUser);

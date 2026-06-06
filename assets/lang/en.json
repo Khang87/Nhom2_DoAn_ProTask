@@ -16,6 +16,7 @@
   "home_create_project_title": "Create new project",
   "home_project_name": "Project Name",
   "home_project_desc": "Project Description (optional)",
+  "home_project_members": "Invite members (Email, comma-separated)",
   "home_btn_create_project": "Create Project",
   "home_greeting_morning": "Good morning ☀️",
   "home_greeting_afternoon": "Good afternoon 🌤️",

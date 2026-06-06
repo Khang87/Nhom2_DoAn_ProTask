@@ -22,8 +22,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   bool _isDeleting = false;
 
   Future<void> _sendOTP(String phone, StateSetter setModalState) async {
-    if (phone.startsWith('0')) phone = '+84${phone.substring(1)}';
-    else if (!phone.startsWith('+')) phone = '+84$phone';
+    phone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (phone.startsWith('+840')) {
+      phone = '+84${phone.substring(4)}';
+    } else if (phone.startsWith('840')) {
+      phone = '+84${phone.substring(3)}';
+    } else if (phone.startsWith('84') && !phone.startsWith('+84')) {
+      phone = '+84${phone.substring(2)}';
+    } else if (phone.startsWith('0')) {
+      phone = '+84${phone.substring(1)}';
+    } else if (!phone.startsWith('+')) {
+      phone = '+84$phone';
+    }
     
     setModalState(() => _isLoading = true);
 

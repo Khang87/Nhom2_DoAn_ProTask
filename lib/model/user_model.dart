@@ -5,6 +5,7 @@ class UserModel {
   final String email;
   final String displayName;
   final String photoUrl;
+  final String phone;
   final List<String> joinedProjects;
   final DateTime createdAt;
 
@@ -13,6 +14,7 @@ class UserModel {
     required this.email,
     required this.displayName,
     required this.photoUrl,
+    this.phone = '',
     required this.joinedProjects,
     required this.createdAt,
   });
@@ -23,6 +25,7 @@ class UserModel {
       email: map['email'] ?? '',
       displayName: map['display_name'] ?? '',
       photoUrl: map['photo_url'] ?? '',
+      phone: map['phone'] ?? '',
       joinedProjects: List<String>.from(map['joined_projects'] ?? []),
       createdAt: (map['created_at'] as Timestamp).toDate(),
     );
@@ -34,6 +37,7 @@ class UserModel {
       'email': email,
       'display_name': displayName,
       'photo_url': photoUrl,
+      'phone': phone,
       'joined_projects': joinedProjects,
       'created_at': Timestamp.fromDate(createdAt),
     };

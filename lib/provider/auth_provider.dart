@@ -107,8 +107,18 @@ class AuthProvider with ChangeNotifier {
     required Function(String) onCodeSent,
     required Function(String) onVerificationFailed,
   }) async {
-    if (phone.startsWith('0')) phone = '+84${phone.substring(1)}';
-    else if (!phone.startsWith('+')) phone = '+84$phone';
+    phone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (phone.startsWith('+840')) {
+      phone = '+84${phone.substring(4)}';
+    } else if (phone.startsWith('840')) {
+      phone = '+84${phone.substring(3)}';
+    } else if (phone.startsWith('84') && !phone.startsWith('+84')) {
+      phone = '+84${phone.substring(2)}';
+    } else if (phone.startsWith('0')) {
+      phone = '+84${phone.substring(1)}';
+    } else if (!phone.startsWith('+')) {
+      phone = '+84$phone';
+    }
     
     await _auth.verifyPhoneNumber(
       phoneNumber: phone,
@@ -164,9 +174,11 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> updateUserPhone(String phone) async {
-    if (_userModel != null) {
-      // Logic to update phone in Firestore
-      print("Updating phone to $phone");
+    User? user = _auth.currentUser;
+    if (user != null) {
+      await _firestoreService.updateUserField(user.uid, {'phone': phone});
+      // Optionally sync to SQLite DatabaseHelper if needed, but Firestore is enough for login check
+      notifyListeners();
     }
   }
 

@@ -405,7 +405,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
     final descCtrl = TextEditingController();
     DateTime? selectedDate;
     List<File> selectedFiles = [];
-    List<String> selectedAssignees = [userId];
+    List<String> selectedAssignees = [];
 
     final project = Provider.of<ProjectProvider>(context, listen: false)
         .projects.firstWhere((p) => p.projectId == widget.projectId);
@@ -543,9 +543,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
                                   if (val) {
                                     selectedAssignees.add(u.uid);
                                   } else {
-                                    if (selectedAssignees.length > 1) {
-                                      selectedAssignees.remove(u.uid);
-                                    }
+                                    selectedAssignees.remove(u.uid);
                                   }
                                 });
                               },

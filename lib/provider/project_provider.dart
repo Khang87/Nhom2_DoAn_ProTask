@@ -23,7 +23,7 @@ class ProjectProvider with ChangeNotifier {
   }
 
   // Tạo dự án mới
-  Future<void> createProject(String title, String description, String ownerId) async {
+  Future<void> createProject(String title, String description, String ownerId, [List<String>? inviteEmails]) async {
     ProjectModel newProject = ProjectModel(
       projectId: '', // Firestore sẽ tự tạo
       title: title,
@@ -32,7 +32,15 @@ class ProjectProvider with ChangeNotifier {
       members: [ProjectMember(userId: ownerId, role: 'owner')],
       createdAt: DateTime.now(),
     );
-    await _firestoreService.createProject(newProject);
+    String newId = await _firestoreService.createProject(newProject);
+
+    if (inviteEmails != null && inviteEmails.isNotEmpty) {
+      for (String email in inviteEmails) {
+        if (email.trim().isNotEmpty) {
+          await inviteMember(newId, email.trim(), 'member');
+        }
+      }
+    }
   }
 
   // Lấy vai trò của user trong dự án

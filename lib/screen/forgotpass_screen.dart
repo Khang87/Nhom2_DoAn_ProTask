@@ -93,8 +93,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
       _showSnack("Vui lòng nhập số điện thoại");
       return;
     }
-    if (phone.startsWith('0')) phone = '+84${phone.substring(1)}';
-    else if (!phone.startsWith('+')) phone = '+84$phone';
+    phone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (phone.startsWith('+840')) {
+      phone = '+84${phone.substring(4)}';
+    } else if (phone.startsWith('840')) {
+      phone = '+84${phone.substring(3)}';
+    } else if (phone.startsWith('84') && !phone.startsWith('+84')) {
+      phone = '+84${phone.substring(2)}';
+    } else if (phone.startsWith('0')) {
+      phone = '+84${phone.substring(1)}';
+    } else if (!phone.startsWith('+')) {
+      phone = '+84$phone';
+    }
 
     setState(() => _isLoading = true);
     await firebase_auth.FirebaseAuth.instance.verifyPhoneNumber(
