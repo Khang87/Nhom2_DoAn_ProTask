@@ -26,36 +26,50 @@ class ProfileScreen extends StatelessWidget {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         slivers: [
-          SliverAppBar(
-            expandedHeight: 280.0,
-            pinned: true,
-            stretch: true,
-            backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [AppColors.darkBg, AppColors.darkCard.withOpacity(0.8)]
-                        : [AppColors.lightBg, AppColors.primary.withOpacity(0.05)],
-                  ),
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [AppColors.darkBg, AppColors.darkCard.withOpacity(0.8)]
+                      : [AppColors.lightBg, AppColors.primary.withOpacity(0.05)],
                 ),
-                child: SafeArea(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Top bar with theme toggle
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                            ),
+                            onPressed: () => themeProvider.toggleTheme(),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 10),
+                      // Avatar
                       GestureDetector(
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyProfileScreen())),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             Container(
-                              width: 100, height: 100,
+                              width: 110, height: 110,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: AppGradients.brand,
@@ -68,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                                 ],
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.all(3.0),
+                                padding: const EdgeInsets.all(4.0),
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: isDark ? AppColors.darkCard : Colors.white,
@@ -78,7 +92,7 @@ class ProfileScreen extends StatelessWidget {
                                     child: Text(
                                       username.isNotEmpty ? username[0].toUpperCase() : "U",
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 40, fontWeight: FontWeight.w800,
+                                        fontSize: 44, fontWeight: FontWeight.w800,
                                         color: isDark ? Colors.white : AppColors.primary,
                                       ),
                                     ),
@@ -89,25 +103,26 @@ class ProfileScreen extends StatelessWidget {
                             Positioned(
                               bottom: 0, right: 4,
                               child: Container(
-                                width: 32, height: 32,
+                                width: 34, height: 34,
                                 decoration: BoxDecoration(
                                   gradient: AppGradients.brand,
                                   shape: BoxShape.circle,
                                   border: Border.all(color: isDark ? AppColors.darkBg : Colors.white, width: 3),
                                 ),
-                                child: const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
+                                child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       Text(
                         username,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 24, fontWeight: FontWeight.w800,
+                          fontSize: 26, fontWeight: FontWeight.w800,
                           color: isDark ? Colors.white : AppColors.textPrimaryLight,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -119,125 +134,115 @@ class ProfileScreen extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.email_rounded, size: 14, color: isDark ? Colors.white70 : AppColors.primary),
-                            const SizedBox(width: 6),
-                            Text(
-                              user?.email ?? "",
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                color: isDark ? Colors.white70 : AppColors.primary,
-                                fontWeight: FontWeight.w600,
+                            Icon(Icons.email_rounded, size: 16, color: isDark ? Colors.white70 : AppColors.primary),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                user?.email ?? "",
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white70 : AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
               ),
             ),
-            actions: [
-              IconButton(
-                icon: Icon(
-                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                ),
-                onPressed: () => themeProvider.toggleTheme(),
-              ),
-              const SizedBox(width: 8),
-            ],
           ),
 
           // Settings Blocks
           SliverToBoxAdapter(
-            child: Transform.translate(
-              offset: const Offset(0, -20),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  children: [
-                    // System Settings Card
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: AppShadows.card(isDark),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildSectionLabel("HỆ THỐNG", isDark),
-                          _buildTile(
-                            context,
-                            icon: Icons.language_rounded,
-                            color: AppColors.secondary,
-                            label: "Ngôn ngữ",
-                            subtitle: localeProvider.currentLanguageNativeName,
-                            isDark: isDark,
-                            onTap: () => _showLanguageDialog(context, isDark, localeProvider),
-                          ),
-                          _buildDivider(isDark),
-                          _buildTile(
-                            context,
-                            icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                            color: const Color(0xFFF59E0B),
-                            label: "Giao diện",
-                            subtitle: isDark ? "Tối" : "Sáng",
-                            isDark: isDark,
-                            onTap: () => themeProvider.toggleTheme(),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                      ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Column(
+                children: [
+                  // System Settings Card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: AppShadows.card(isDark),
+                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // Action Settings Card
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: AppShadows.card(isDark),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildSectionLabel("BẢO MẬT & THÔNG BÁO", isDark),
-                          _buildTile(
-                            context,
-                            icon: Icons.notifications_rounded,
-                            color: const Color(0xFFEF4444),
-                            label: "Thông báo",
-                            isDark: isDark,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
-                          ),
-                          _buildDivider(isDark),
-                          _buildTile(
-                            context,
-                            icon: Icons.lock_rounded,
-                            color: const Color(0xFF8B5CF6),
-                            label: "Đổi mật khẩu",
-                            isDark: isDark,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
-                          ),
-                          _buildDivider(isDark),
-                          _buildTile(
-                            context,
-                            icon: Icons.logout_rounded,
-                            color: const Color(0xFFEF4444),
-                            label: "Đăng xuất",
-                            isDark: isDark,
-                            isDestructive: true,
-                            onTap: () => _showLogoutDialog(context, isDark, authProvider),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                      ),
+                    child: Column(
+                      children: [
+                        _buildSectionLabel("HỆ THỐNG", isDark),
+                        _buildTile(
+                          context,
+                          icon: Icons.language_rounded,
+                          color: AppColors.secondary,
+                          label: "Ngôn ngữ",
+                          subtitle: localeProvider.currentLanguageNativeName,
+                          isDark: isDark,
+                          onTap: () => _showLanguageDialog(context, isDark, localeProvider),
+                        ),
+                        _buildDivider(isDark),
+                        _buildTile(
+                          context,
+                          icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                          color: const Color(0xFFF59E0B),
+                          label: "Giao diện",
+                          subtitle: isDark ? "Tối" : "Sáng",
+                          isDark: isDark,
+                          onTap: () => themeProvider.toggleTheme(),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Action Settings Card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: AppShadows.card(isDark),
+                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildSectionLabel("BẢO MẬT & THÔNG BÁO", isDark),
+                        _buildTile(
+                          context,
+                          icon: Icons.notifications_rounded,
+                          color: const Color(0xFFEF4444),
+                          label: "Thông báo",
+                          isDark: isDark,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                        ),
+                        _buildDivider(isDark),
+                        _buildTile(
+                          context,
+                          icon: Icons.lock_rounded,
+                          color: const Color(0xFF8B5CF6),
+                          label: "Đổi mật khẩu",
+                          isDark: isDark,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+                        ),
+                        _buildDivider(isDark),
+                        _buildTile(
+                          context,
+                          icon: Icons.logout_rounded,
+                          color: const Color(0xFFEF4444),
+                          label: "Đăng xuất",
+                          isDark: isDark,
+                          isDestructive: true,
+                          onTap: () => _showLogoutDialog(context, isDark, authProvider),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -245,7 +250,7 @@ class ProfileScreen extends StatelessWidget {
           // Version Footer
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 40, top: 20),
+              padding: const EdgeInsets.only(bottom: 40, top: 40),
               child: Center(
                 child: Column(
                   children: [
