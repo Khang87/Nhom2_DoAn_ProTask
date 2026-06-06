@@ -342,14 +342,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 ),
               ),
               flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 64, bottom: 16),
-                title: Text(
-                  "Hồ sơ cá nhân",
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 20, fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                  ),
-                ),
                 stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
                 background: Container(
                   color: isDark ? AppColors.darkBg : AppColors.lightBg,
