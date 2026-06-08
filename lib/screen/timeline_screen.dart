@@ -6,6 +6,9 @@ import 'package:intl/intl.dart';
 import '../app_theme.dart';
 import '../provider/task_provider.dart';
 import '../model/task_model.dart';
+import '../provider/locale_provider.dart';
+import '../provider/project_provider.dart';
+import '../provider/auth_provider.dart';
 
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({super.key});
@@ -16,6 +19,8 @@ class TimelineScreen extends StatefulWidget {
 
 class _TimelineScreenState extends State<TimelineScreen> {
   String _filter = 'all'; // 'all', 'upcoming', 'done'
+  String _selectedStream = 'managed'; // 'managed', 'participated'
+  String _selectedProjectId = 'all';
 
   @override
   void initState() {
@@ -26,6 +31,35 @@ class _TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final projectProvider = context.watch<ProjectProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    final userId = authProvider.userModel?.uid ?? '';
+
+    final projects = projectProvider.projects;
+
+    // Phân loại dự án
+    final myManagedProjects = projects.where((p) {
+      final role = projectProvider.getUserRole(p.projectId, userId);
+      return role == 'owner' || role == 'manager';
+    }).toList();
+
+    final myParticipatedProjects = projects.where((p) {
+      final role = projectProvider.getUserRole(p.projectId, userId);
+      return role != 'owner' && role != 'manager';
+    }).toList();
+
+    final currentList = _selectedStream == 'managed' ? myManagedProjects : myParticipatedProjects;
+
+    // Ensure selected project is valid
+    if (_selectedProjectId != 'all' && !currentList.any((p) => p.projectId == _selectedProjectId)) {
+      // Must use addPostFrameCallback if we are changing state, but actually we can just reset it locally or schedule
+      // Better to just not reset state during build, but fallback locally:
+      // We will do a local variable fallback if needed, but it's simpler to schedule it.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedProjectId = 'all');
+      });
+    }
 
     return Scaffold(
       body: Consumer<TaskProvider>(
@@ -45,14 +79,27 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
           var tasks = List<TaskModel>.from(taskProvider.tasks);
 
-          // Filter
+          // 1. Lọc theo luồng và dự án
+          String effectiveProjectId = _selectedProjectId;
+          if (effectiveProjectId != 'all' && !currentList.any((p) => p.projectId == effectiveProjectId)) {
+            effectiveProjectId = 'all';
+          }
+
+          if (effectiveProjectId != 'all') {
+            tasks = tasks.where((t) => t.projectId == effectiveProjectId).toList();
+          } else {
+            final validProjectIds = currentList.map((p) => p.projectId).toSet();
+            tasks = tasks.where((t) => validProjectIds.contains(t.projectId)).toList();
+          }
+
+          // 2. Lọc theo trạng thái
           if (_filter == 'upcoming') {
             tasks = tasks.where((t) => t.status != TaskStatus.done).toList();
           } else if (_filter == 'done') {
             tasks = tasks.where((t) => t.status == TaskStatus.done).toList();
           }
 
-          // Sort by due date
+          // 3. Sắp xếp theo ngày hạn
           tasks.sort((a, b) {
             if (a.dueDate == null) return 1;
             if (b.dueDate == null) return -1;
@@ -83,26 +130,123 @@ class _TimelineScreenState extends State<TimelineScreen> {
                             child: const Icon(Icons.timeline_rounded, color: Colors.white, size: 20),
                           ),
                           const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Timeline", style: AppTextStyles.heading2(isDark)),
-                              Text("${tasks.length} công việc", style: AppTextStyles.caption(isDark)),
-                            ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(localeProvider.getText("timeline_title"), style: AppTextStyles.heading2(isDark)),
+                                Text(localeProvider.getText("timeline_task_count", params: {"count": tasks.length.toString()}), style: AppTextStyles.caption(isDark)),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
+                      
+                      // 2 Luồng (Tabs)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _selectedStream = 'managed';
+                                  _selectedProjectId = 'all';
+                                }),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: _selectedStream == 'managed' 
+                                        ? (isDark ? AppColors.darkCard : Colors.white) 
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
+                                    boxShadow: _selectedStream == 'managed' ? AppShadows.card(isDark) : null,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(localeProvider.getText("timeline_tab_managed"), style: AppTextStyles.bodyMedium(isDark).copyWith(
+                                    color: _selectedStream == 'managed' ? AppColors.primary : Colors.grey,
+                                    fontWeight: _selectedStream == 'managed' ? FontWeight.w700 : FontWeight.w500,
+                                  )),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _selectedStream = 'participated';
+                                  _selectedProjectId = 'all';
+                                }),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: _selectedStream == 'participated' 
+                                        ? (isDark ? AppColors.darkCard : Colors.white) 
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
+                                    boxShadow: _selectedStream == 'participated' ? AppShadows.card(isDark) : null,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(localeProvider.getText("timeline_tab_participated"), style: AppTextStyles.bodyMedium(isDark).copyWith(
+                                    color: _selectedStream == 'participated' ? AppColors.primary : Colors.grey,
+                                    fontWeight: _selectedStream == 'participated' ? FontWeight.w700 : FontWeight.w500,
+                                  )),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Chọn Dự Án
+                      if (currentList.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: effectiveProjectId,
+                              isExpanded: true,
+                              dropdownColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+                              icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'all',
+                                  child: Text(localeProvider.getText("timeline_all_projects"), style: AppTextStyles.bodyMedium(isDark)),
+                                ),
+                                ...currentList.map((p) => DropdownMenuItem(
+                                  value: p.projectId,
+                                  child: Text(p.title, style: AppTextStyles.bodyMedium(isDark), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                ))
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedProjectId = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      
+                      const SizedBox(height: 16),
+
                       // Filter chips
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _filterChip("Tất cả", 'all', isDark),
+                            _filterChip(localeProvider.getText("timeline_filter_all"), 'all', isDark),
                             const SizedBox(width: 8),
-                            _filterChip("Chưa xong", 'upcoming', isDark),
+                            _filterChip(localeProvider.getText("timeline_filter_upcoming"), 'upcoming', isDark),
                             const SizedBox(width: 8),
-                            _filterChip("Hoàn thành", 'done', isDark),
+                            _filterChip(localeProvider.getText("timeline_filter_done"), 'done', isDark),
                           ],
                         ),
                       ),
@@ -262,7 +406,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              _statusChip(task.status, isDark),
+              _statusChip(context, task.status, isDark),
               const Spacer(),
               if (task.assignees.isNotEmpty)
                 Row(
@@ -282,25 +426,26 @@ class _TimelineScreenState extends State<TimelineScreen> {
     );
   }
 
-  Widget _statusChip(TaskStatus status, bool isDark) {
+  Widget _statusChip(BuildContext context, TaskStatus status, bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     Color color;
     String label;
     switch (status) {
       case TaskStatus.todo:
         color = AppColors.statusTodo;
-        label = "Cần làm";
+        label = localeProvider.getText("kanban_status_todo");
         break;
       case TaskStatus.in_progress:
         color = AppColors.statusInProgress;
-        label = "Đang làm";
+        label = localeProvider.getText("kanban_status_in_progress");
         break;
       case TaskStatus.review:
         color = AppColors.statusReview;
-        label = "Review";
+        label = localeProvider.getText("kanban_status_review");
         break;
       case TaskStatus.done:
         color = AppColors.statusDone;
-        label = "Hoàn thành";
+        label = localeProvider.getText("timeline_filter_done");
         break;
     }
     return StatusBadge(label: label, color: color, small: true);

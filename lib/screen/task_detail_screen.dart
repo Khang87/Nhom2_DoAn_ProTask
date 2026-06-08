@@ -11,6 +11,8 @@ import '../provider/comment_provider.dart';
 import '../provider/project_provider.dart';
 import '../provider/task_provider.dart';
 import '../service/storage_service.dart';
+import '../service/firestore_service.dart';
+import '../model/user_model.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final TaskModel task;
@@ -135,7 +137,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   icon: Icon(Icons.more_vert_rounded, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
                   onSelected: (val) async {
-                    if (val == 'delete') {
+                    if (val == 'edit') {
+                      _showEditTaskDialog(context, isDark);
+                    } else if (val == 'delete') {
                       await Provider.of<TaskProvider>(context, listen: false).deleteTask(widget.task.taskId);
                       if (context.mounted) Navigator.pop(context);
                       if (context.mounted) {
@@ -146,6 +150,16 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                     }
                   },
                   itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text("Chỉnh sửa Task", style: AppTextStyles.body(isDark)),
+                        ],
+                      ),
+                    ),
                     PopupMenuItem(
                       value: 'delete',
                       child: Row(
@@ -215,6 +229,32 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         const SizedBox(height: 14),
 
                         // Meta info
+                        if (widget.task.progress > 0 || widget.task.status == TaskStatus.done) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(AppRadius.full),
+                                  child: LinearProgressIndicator(
+                                    value: widget.task.status == TaskStatus.done ? 1.0 : widget.task.progress,
+                                    minHeight: 8,
+                                    backgroundColor: (isDark ? AppColors.darkBorder : AppColors.lightBorder).withOpacity(0.5),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      widget.task.status == TaskStatus.done ? AppColors.statusDone : AppColors.primary
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                "${widget.task.status == TaskStatus.done ? 100 : (widget.task.progress * 100).toInt()}%",
+                                style: AppTextStyles.captionBold(isDark).copyWith(color: AppColors.primary),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        
                         Row(
                           children: [
                             if (widget.task.dueDate != null) ...[
@@ -222,6 +262,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                                 icon: Icons.calendar_today_rounded,
                                 label: "Hạn: ${DateFormat('dd/MM/yyyy').format(widget.task.dueDate!)}",
                                 color: isOverdue ? AppColors.priorityHigh : AppColors.primary,
+                                isDark: isDark,
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (widget.task.managerId.isNotEmpty) ...[
+                              _metaChip(
+                                icon: Icons.admin_panel_settings_rounded,
+                                label: "Quản lý",
+                                color: AppColors.statusReview,
                                 isDark: isDark,
                               ),
                               const SizedBox(width: 8),
@@ -283,6 +332,19 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         ),
                         const SizedBox(height: 14),
                         _buildComments(commentProvider, isDark),
+                        const SizedBox(height: 24),
+                        
+                        if (widget.task.status != TaskStatus.done && (widget.task.assignees.contains(Provider.of<AuthProvider>(context, listen: false).userModel?.uid) || Provider.of<ProjectProvider>(context, listen: false).getUserRole(widget.task.projectId, Provider.of<AuthProvider>(context, listen: false).userModel?.uid ?? '') == 'owner' || widget.task.managerId == Provider.of<AuthProvider>(context, listen: false).userModel?.uid))
+                          SizedBox(
+                            width: double.infinity,
+                            child: GradientButton(
+                              label: "Đánh dấu Hoàn thành",
+                              icon: Icons.check_circle_rounded,
+                              onTap: () {
+                                Provider.of<TaskProvider>(context, listen: false).updateStatus(widget.task.taskId, TaskStatus.done);
+                              },
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -560,5 +622,363 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       case TaskStatus.review: return AppColors.statusReview;
       case TaskStatus.done: return AppColors.statusDone;
     }
+  }
+
+  void _showEditTaskDialog(BuildContext context, bool isDark) {
+    final titleCtrl = TextEditingController(text: widget.task.title);
+    final descCtrl = TextEditingController(text: widget.task.description);
+    DateTime? selectedDate = widget.task.dueDate;
+    List<String> selectedAssignees = List.from(widget.task.assignees);
+    TaskPriority selectedPriority = widget.task.priority;
+    double selectedProgress = widget.task.progress;
+    List<AttachmentModel> currentAttachments = List.from(widget.task.attachments);
+    List<File> newLocalFiles = [];
+
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final project = projectProvider.projects.firstWhere((p) => p.projectId == widget.task.projectId);
+    final memberIds = project.members.map((m) => m.userId).toList();
+    final usersFuture = FirestoreService().getUsersByIds(memberIds);
+    
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final userId = auth.userModel?.uid ?? '';
+    final role = projectProvider.getUserRole(widget.task.projectId, userId);
+    final isManager = role == 'owner' || role == 'manager' || widget.task.managerId == userId;
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheet) => Container(
+            margin: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text("Chỉnh sửa Task", style: AppTextStyles.heading2(isDark)),
+                    const SizedBox(height: 20),
+
+                    TextField(
+                      controller: titleCtrl,
+                      style: AppTextStyles.body(isDark),
+                      decoration: const InputDecoration(
+                        labelText: "Tiêu đề task",
+                        prefixIcon: Icon(Icons.task_alt_rounded, color: AppColors.primary, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: descCtrl,
+                      style: AppTextStyles.body(isDark),
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: "Mô tả (tùy chọn)",
+                        prefixIcon: Icon(Icons.description_outlined, color: AppColors.primary, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (isManager) ...[
+                      Text("Tiến độ: ${(selectedProgress * 100).toInt()}%", style: AppTextStyles.captionBold(isDark)),
+                      Slider(
+                        value: selectedProgress,
+                        min: 0.0,
+                        max: 1.0,
+                        divisions: 20,
+                        activeColor: AppColors.primary,
+                        onChanged: (val) {
+                          setSheet(() => selectedProgress = val);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    Text("Độ ưu tiên", style: AppTextStyles.captionBold(isDark)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _priorityChipStateful(selectedPriority, TaskPriority.low, "Thấp", AppColors.priorityLow,
+                            () => setSheet(() => selectedPriority = TaskPriority.low)),
+                        const SizedBox(width: 8),
+                        _priorityChipStateful(selectedPriority, TaskPriority.medium, "Trung", AppColors.priorityMedium,
+                            () => setSheet(() => selectedPriority = TaskPriority.medium)),
+                        const SizedBox(width: 8),
+                        _priorityChipStateful(selectedPriority, TaskPriority.high, "Cao", AppColors.priorityHigh,
+                            () => setSheet(() => selectedPriority = TaskPriority.high)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text("Thời hạn (Deadline)", style: AppTextStyles.captionBold(isDark)),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate ?? DateTime.now(),
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime(2030),
+                        );
+                        if (picked != null) {
+                          setSheet(() => selectedDate = picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkCard : const Color(0xFFF3F2FF),
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              selectedDate == null ? "Chọn ngày hết hạn" : DateFormat('dd/MM/yyyy').format(selectedDate!),
+                              style: AppTextStyles.body(isDark).copyWith(
+                                color: selectedDate == null ? (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight) : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    Text("Người phụ trách", style: AppTextStyles.captionBold(isDark)),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<UserModel>>(
+                      future: usersFuture,
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const CircularProgressIndicator(color: AppColors.primary);
+                        final users = snapshot.data!;
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: users.map((u) {
+                            final isSelected = selectedAssignees.contains(u.uid);
+                            return FilterChip(
+                              label: Text(u.displayName, style: TextStyle(color: isSelected ? Colors.white : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight))),
+                              selected: isSelected,
+                              selectedColor: AppColors.primary,
+                              backgroundColor: isDark ? AppColors.darkCard : const Color(0xFFF3F2FF),
+                              checkmarkColor: Colors.white,
+                              onSelected: (val) {
+                                setSheet(() {
+                                  if (val) {
+                                    selectedAssignees.add(u.uid);
+                                  } else {
+                                    selectedAssignees.remove(u.uid);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+                    Text("Tệp đính kèm hiện tại", style: AppTextStyles.captionBold(isDark)),
+                    const SizedBox(height: 8),
+                    if (currentAttachments.isEmpty && newLocalFiles.isEmpty)
+                      Text("Không có tệp đính kèm", style: AppTextStyles.body(isDark)),
+                    
+                    if (currentAttachments.isNotEmpty)
+                      Column(
+                        children: currentAttachments.map((f) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.insert_drive_file_rounded, size: 16, color: AppColors.primary),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    f.fileName,
+                                    style: AppTextStyles.bodyMedium(isDark),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setSheet(() => currentAttachments.remove(f));
+                                  },
+                                  child: const Icon(Icons.close_rounded, size: 16, color: AppColors.priorityHigh),
+                                )
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                    if (newLocalFiles.isNotEmpty)
+                      Column(
+                        children: newLocalFiles.map((f) {
+                          String fName = f.path.split(Platform.pathSeparator).last;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.insert_drive_file_rounded, size: 16, color: AppColors.statusInProgress),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    fName + " (mới)",
+                                    style: AppTextStyles.bodyMedium(isDark),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setSheet(() => newLocalFiles.remove(f));
+                                  },
+                                  child: const Icon(Icons.close_rounded, size: 16, color: AppColors.priorityHigh),
+                                )
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        List<File> picked = await StorageService().pickFiles();
+                        if (picked.isNotEmpty) {
+                          setSheet(() {
+                            newLocalFiles.addAll(picked);
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.3), style: BorderStyle.solid),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.upload_file_rounded, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Tải tệp đính kèm mới",
+                              style: AppTextStyles.bodyMedium(isDark).copyWith(color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (titleCtrl.text.isNotEmpty) {
+                            // Upload new files
+                            List<AttachmentModel> allAttachments = List.from(currentAttachments);
+                            if (newLocalFiles.isNotEmpty) {
+                              final storageService = StorageService();
+                              for (var file in newLocalFiles) {
+                                AttachmentModel? attachment = await storageService.uploadFile('tasks/${widget.task.taskId}', file);
+                                if (attachment != null) {
+                                  allAttachments.add(attachment);
+                                }
+                              }
+                            }
+                            
+                            if (context.mounted) {
+                              Provider.of<TaskProvider>(context, listen: false).updateTaskDetails(
+                                widget.task.taskId,
+                                titleCtrl.text.trim(),
+                                descCtrl.text.trim(),
+                                selectedPriority,
+                                selectedAssignees,
+                                selectedDate,
+                                selectedProgress,
+                                allAttachments,
+                              );
+                              Navigator.pop(ctx);
+                              Navigator.pop(context);
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+                        ),
+                        child: const Text("Lưu thay đổi", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _priorityChipStateful(TaskPriority current, TaskPriority value, String label, Color color, VoidCallback onTap) {
+    final isSelected = current == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: isSelected ? color : (Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.flag_rounded, color: isSelected ? color : Colors.grey, size: 18),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? color : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

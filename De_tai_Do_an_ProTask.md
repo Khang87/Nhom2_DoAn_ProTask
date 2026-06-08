@@ -260,3 +260,4 @@ Dưới đây là danh sách các tính năng nâng cao vừa được hoàn thi
 - **Đổi Tên hiển thị (Edit Display Name):**
   - **Cách test:** Vào Profile -> Nhấn vào biểu tượng cây bút `✏️` cạnh tên hiển thị -> Nhập tên mới -> Lưu.
   - **Kết quả mong muốn:** Tên người dùng sẽ cập nhật trên toàn hệ thống (bao gồm danh sách thành viên trong dự án).
+

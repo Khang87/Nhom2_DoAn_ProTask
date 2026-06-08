@@ -33,10 +33,12 @@ class TaskModel {
   final TaskStatus status;
   final TaskPriority priority;
   final List<String> assignees;
+  final String managerId;
   final DateTime? startDate;
   final DateTime? dueDate;
   final List<AttachmentModel> attachments;
   final DateTime createdAt;
+  final double progress;
 
   TaskModel({
     required this.taskId,
@@ -46,10 +48,12 @@ class TaskModel {
     required this.status,
     required this.priority,
     required this.assignees,
+    required this.managerId,
     this.startDate,
     this.dueDate,
     this.attachments = const [],
     required this.createdAt,
+    this.progress = 0.0,
   });
 
   factory TaskModel.fromMap(Map<String, dynamic> map, String id) {
@@ -61,10 +65,12 @@ class TaskModel {
       status: TaskStatus.values.firstWhere((e) => e.toString().split('.').last == map['status'], orElse: () => TaskStatus.todo),
       priority: TaskPriority.values.firstWhere((e) => e.toString().split('.').last == map['priority'], orElse: () => TaskPriority.medium),
       assignees: List<String>.from(map['assignees'] ?? []),
+      managerId: map['manager_id'] ?? '',
       startDate: (map['start_date'] as Timestamp?)?.toDate(),
       dueDate: (map['due_date'] as Timestamp?)?.toDate(),
       attachments: (map['attachments'] as List?)?.map((a) => AttachmentModel.fromMap(a)).toList() ?? [],
       createdAt: (map['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      progress: (map['progress'] ?? 0.0).toDouble(),
     );
   }
 
@@ -76,10 +82,12 @@ class TaskModel {
       'status': status.toString().split('.').last,
       'priority': priority.toString().split('.').last,
       'assignees': assignees,
+      'manager_id': managerId,
       'start_date': startDate != null ? Timestamp.fromDate(startDate!) : null,
       'due_date': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'attachments': attachments.map((a) => a.toMap()).toList(),
       'created_at': Timestamp.fromDate(createdAt),
+      'progress': progress,
     };
   }
 }

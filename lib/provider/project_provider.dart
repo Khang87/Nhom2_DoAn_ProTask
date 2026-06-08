@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/project_model.dart';
 import '../service/firestore_service.dart';
 
@@ -69,8 +70,19 @@ class ProjectProvider with ChangeNotifier {
 
 
   // Quản lý (Chỉ Owner/Manager)
-  Future<void> updateProject(String projectId, String newTitle, String newDesc) async {
-    await _firestoreService.updateProject(projectId, {'title': newTitle, 'description': newDesc});
+  Future<void> updateProject(String projectId, String newTitle, String newDesc, [DateTime? newEndDate, double progress = 0.0, bool isCompleted = false]) async {
+    final data = <String, dynamic>{
+      'title': newTitle, 
+      'description': newDesc,
+      'progress': progress,
+      'is_completed': isCompleted,
+    };
+    if (newEndDate != null) {
+      data['end_date'] = Timestamp.fromDate(newEndDate);
+    } else {
+      data['end_date'] = null; // or FieldValue.delete() if we want to remove
+    }
+    await _firestoreService.updateProject(projectId, data);
   }
 
   Future<void> deleteProject(String projectId, List<String> memberIds) async {

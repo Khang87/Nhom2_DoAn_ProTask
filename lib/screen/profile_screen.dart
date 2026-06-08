@@ -174,12 +174,12 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _buildSectionLabel("HỆ THỐNG", isDark),
+                        _buildSectionLabel(localeProvider.getText("profile_system"), isDark),
                         _buildTile(
                           context,
                           icon: Icons.language_rounded,
                           color: AppColors.secondary,
-                          label: "Ngôn ngữ",
+                          label: localeProvider.getText("profile_language"),
                           subtitle: localeProvider.currentLanguageNativeName,
                           isDark: isDark,
                           onTap: () => _showLanguageDialog(context, isDark, localeProvider),
@@ -189,8 +189,8 @@ class ProfileScreen extends StatelessWidget {
                           context,
                           icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                           color: const Color(0xFFF59E0B),
-                          label: "Giao diện",
-                          subtitle: isDark ? "Tối" : "Sáng",
+                          label: localeProvider.getText("profile_theme"),
+                          subtitle: isDark ? localeProvider.getText("profile_theme_dark") : localeProvider.getText("profile_theme_light"),
                           isDark: isDark,
                           onTap: () => themeProvider.toggleTheme(),
                         ),
@@ -210,12 +210,12 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _buildSectionLabel("BẢO MẬT & THÔNG BÁO", isDark),
+                        _buildSectionLabel(localeProvider.getText("profile_security_noti"), isDark),
                         _buildTile(
                           context,
                           icon: Icons.notifications_rounded,
                           color: const Color(0xFFEF4444),
-                          label: "Thông báo",
+                          label: localeProvider.getText("profile_notifications"),
                           isDark: isDark,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
                         ),
@@ -224,7 +224,7 @@ class ProfileScreen extends StatelessWidget {
                           context,
                           icon: Icons.lock_rounded,
                           color: const Color(0xFF8B5CF6),
-                          label: "Đổi mật khẩu",
+                          label: localeProvider.getText("profile_change_password"),
                           isDark: isDark,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
                         ),
@@ -233,7 +233,7 @@ class ProfileScreen extends StatelessWidget {
                           context,
                           icon: Icons.logout_rounded,
                           color: const Color(0xFFEF4444),
-                          label: "Đăng xuất",
+                          label: localeProvider.getText("profile_logout"),
                           isDark: isDark,
                           isDestructive: true,
                           onTap: () => _showLogoutDialog(context, isDark, authProvider),

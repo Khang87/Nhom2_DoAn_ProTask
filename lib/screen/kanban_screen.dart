@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../app_theme.dart';
 import '../model/task_model.dart';
+import '../provider/locale_provider.dart';
 import '../provider/task_provider.dart';
 import '../service/storage_service.dart';
 import '../provider/auth_provider.dart';
@@ -29,17 +30,19 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
   TaskPriority? _selectedPriority;
   late TabController _tabController;
 
-  final List<_KanbanColumn> _columns = const [
-    _KanbanColumn("Cần làm", TaskStatus.todo, AppColors.statusTodo, Icons.radio_button_unchecked_rounded),
-    _KanbanColumn("Đang làm", TaskStatus.in_progress, AppColors.statusInProgress, Icons.pending_rounded),
-    _KanbanColumn("Review", TaskStatus.review, AppColors.statusReview, Icons.rate_review_rounded),
-    _KanbanColumn("Hoàn thành", TaskStatus.done, AppColors.statusDone, Icons.check_circle_outline_rounded),
-  ];
+  List<_KanbanColumn> _getColumns(LocaleProvider localeProvider) {
+    return [
+      _KanbanColumn(localeProvider.getText("kanban_status_todo"), TaskStatus.todo, AppColors.statusTodo, Icons.radio_button_unchecked_rounded),
+      _KanbanColumn(localeProvider.getText("kanban_status_in_progress"), TaskStatus.in_progress, AppColors.statusInProgress, Icons.pending_rounded),
+      _KanbanColumn(localeProvider.getText("kanban_status_review"), TaskStatus.review, AppColors.statusReview, Icons.rate_review_rounded),
+      _KanbanColumn(localeProvider.getText("kanban_status_done"), TaskStatus.done, AppColors.statusDone, Icons.check_circle_outline_rounded),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _columns.length, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TaskProvider>(context, listen: false).listenToTasks(widget.projectId);
     });
@@ -54,6 +57,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     return Scaffold(
@@ -79,7 +83,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
               labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
               unselectedLabelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
               tabAlignment: TabAlignment.start,
-              tabs: _columns.map((col) {
+              tabs: _getColumns(Provider.of<LocaleProvider>(context)).map((col) {
                 return Consumer<TaskProvider>(
                   builder: (context, tp, _) {
                     final count = tp.getTasksByStatus(col.status).length;
@@ -115,7 +119,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: _columns.map((col) {
+              children: _getColumns(Provider.of<LocaleProvider>(context)).map((col) {
                 return _buildColumnContent(context, col, isDark, auth.userModel?.uid ?? '');
               }).toList(),
             ),
@@ -216,9 +220,21 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
                     if (context.mounted) Navigator.pop(context);
                   } else if (val == 'manage_members') {
                     _showManageMembersDialog(context, isDark);
+                  } else if (val == 'update_progress') {
+                    _showUpdateProgressDialog(context, isDark);
                   }
                 },
                 itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'update_progress',
+                    child: Row(
+                      children: [
+                        Icon(Icons.trending_up_rounded, color: AppColors.secondary, size: 20),
+                        const SizedBox(width: 8),
+                        Text("Cập nhật tiến độ", style: AppTextStyles.body(isDark)),
+                      ],
+                    ),
+                  ),
                   PopupMenuItem(
                     value: 'manage_members',
                     child: Row(
@@ -257,17 +273,59 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
   }
 
   Widget _buildSearchAndFilter(bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return Container(
       color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
         children: [
+          // Project Progress
+          Consumer<ProjectProvider>(
+            builder: (ctx, projectProvider, _) {
+              try {
+                final project = projectProvider.projects.firstWhere((p) => p.projectId == widget.projectId);
+                if (project.progress == 0 && !project.isCompleted) return const SizedBox.shrink();
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Text("Tiến độ dự án:", style: AppTextStyles.captionBold(isDark)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                            child: LinearProgressIndicator(
+                              value: project.isCompleted ? 1.0 : project.progress,
+                              minHeight: 6,
+                              backgroundColor: (isDark ? AppColors.darkBorder : AppColors.lightBorder).withOpacity(0.5),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                project.isCompleted ? AppColors.statusDone : AppColors.primary
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "${project.isCompleted ? 100 : (project.progress * 100).toInt()}%",
+                          style: AppTextStyles.captionBold(isDark).copyWith(color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              } catch (e) {
+                return const SizedBox.shrink();
+              }
+            },
+          ),
+          
           // Search
           TextField(
             onChanged: (val) => setState(() => _searchQuery = val),
             style: AppTextStyles.body(isDark),
             decoration: InputDecoration(
-              hintText: "Tìm kiếm task...",
+              hintText: localeProvider.getText("kanban_search"),
               prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
               suffixIcon: _searchQuery.isNotEmpty
                   ? GestureDetector(
@@ -284,7 +342,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildChip("Tất cả", null, Icons.all_inclusive_rounded, isDark),
+                _buildChip(localeProvider.getText("timeline_filter_all"), null, Icons.all_inclusive_rounded, isDark),
                 _buildChip("Cao", TaskPriority.high, Icons.keyboard_arrow_up_rounded, isDark),
                 _buildChip("Trung bình", TaskPriority.medium, Icons.remove_rounded, isDark),
                 _buildChip("Thấp", TaskPriority.low, Icons.keyboard_arrow_down_rounded, isDark),
@@ -406,6 +464,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
     DateTime? selectedDate;
     List<File> selectedFiles = [];
     List<String> selectedAssignees = [];
+    TaskPriority selectedPriority = TaskPriority.medium;
 
     final project = Provider.of<ProjectProvider>(context, listen: false)
         .projects.firstWhere((p) => p.projectId == widget.projectId);
@@ -417,7 +476,6 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        TaskPriority selectedPriority = TaskPriority.medium;
         return StatefulBuilder(
           builder: (ctx, setSheet) => Container(
             margin: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
@@ -641,6 +699,7 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
                               status: TaskStatus.todo,
                               priority: selectedPriority,
                               assignees: selectedAssignees,
+                              managerId: Provider.of<AuthProvider>(context, listen: false).userModel?.uid ?? '',
                               attachments: [],
                               dueDate: selectedDate,
                               createdAt: DateTime.now(),
@@ -790,6 +849,61 @@ class _KanbanScreenState extends State<KanbanScreen> with SingleTickerProviderSt
     );
   }
 
+  void _showUpdateProgressDialog(BuildContext context, bool isDark) {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final project = projectProvider.projects.firstWhere((p) => p.projectId == widget.projectId);
+    double selectedProgress = project.progress;
+    bool isCompleted = project.isCompleted;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Cập nhật tiến độ dự án", style: AppTextStyles.heading3(isDark)),
+              const SizedBox(height: 24),
+              Text("Tiến độ: ${(selectedProgress * 100).toInt()}%", style: AppTextStyles.captionBold(isDark)),
+              Slider(
+                value: selectedProgress,
+                min: 0.0,
+                max: 1.0,
+                divisions: 20,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setSheet(() { selectedProgress = val; if(val == 1.0) isCompleted = true; }),
+              ),
+              SwitchListTile(
+                title: Text("Đánh dấu hoàn thành", style: AppTextStyles.bodyMedium(isDark)),
+                value: isCompleted,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setSheet(() { isCompleted = val; if(val) selectedProgress = 1.0; }),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: GradientButton(
+                  label: "Lưu cập nhật",
+                  icon: Icons.save_rounded,
+                  onTap: () {
+                    projectProvider.updateProject(project.projectId, project.title, project.description, project.endDate, selectedProgress, isCompleted);
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showManageMembersDialog(BuildContext context, bool isDark) {
     showDialog(
       context: context,
@@ -914,6 +1028,7 @@ class _KanbanTaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     return LongPressDraggable<TaskModel>(
       data: task,
@@ -937,6 +1052,7 @@ class _KanbanTaskCard extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context, bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final priorityColor = task.priority == TaskPriority.high
         ? AppColors.priorityHigh
         : task.priority == TaskPriority.medium
@@ -1034,6 +1150,33 @@ class _KanbanTaskCard extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
+                  if (task.progress > 0) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: task.progress,
+                              minHeight: 4,
+                              backgroundColor: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                              valueColor: AlwaysStoppedAnimation<Color>(task.progress >= 1.0 ? AppColors.statusDone : AppColors.primary),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "${(task.progress * 100).toInt()}%",
+                          style: AppTextStyles.captionBold(isDark).copyWith(
+                            fontSize: 10,
+                            color: task.progress >= 1.0 ? AppColors.statusDone : AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   // Bottom row
                   Row(
                     children: [
@@ -1045,7 +1188,7 @@ class _KanbanTaskCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                           child: Text(
-                            "Quá hạn",
+                            localeProvider.getText("kanban_overdue"),
                             style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.priorityHigh),
                           ),
                         ),

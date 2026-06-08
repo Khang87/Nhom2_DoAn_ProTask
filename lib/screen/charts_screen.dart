@@ -5,6 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../app_theme.dart';
 import '../provider/task_provider.dart';
 import '../model/task_model.dart';
+import '../provider/locale_provider.dart';
+import '../provider/project_provider.dart';
+import '../provider/auth_provider.dart';
 
 class ChartsScreen extends StatefulWidget {
   const ChartsScreen({super.key});
@@ -17,6 +20,7 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
   int? _touchedIndex;
   late AnimationController _animCtrl;
   late Animation<double> _anim;
+  String _selectedProjectId = 'all';
 
   @override
   void initState() {
@@ -35,18 +39,31 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final projectProvider = context.watch<ProjectProvider>();
+    final projects = projectProvider.projects;
+
+    if (_selectedProjectId != 'all' && !projects.any((p) => p.projectId == _selectedProjectId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedProjectId = 'all');
+      });
+    }
 
     return Scaffold(
       body: Consumer<TaskProvider>(
         builder: (context, taskProvider, child) {
-          final tasks = taskProvider.tasks;
+          var tasks = taskProvider.tasks;
+
+          if (_selectedProjectId != 'all') {
+            tasks = tasks.where((t) => t.projectId == _selectedProjectId).toList();
+          }
 
           return CustomScrollView(
             slivers: [
               // App Bar
               SliverToBoxAdapter(
                 child: Container(
-                  padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 20),
+                  padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 16),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
                     border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
@@ -68,12 +85,44 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("Báo cáo & Phân tích", style: AppTextStyles.heading2(isDark)),
-                              Text("Tổng quan hiệu suất dự án", style: AppTextStyles.caption(isDark)),
+                              Text(localeProvider.getText("charts_title"), style: AppTextStyles.heading2(isDark)),
+                              Text(localeProvider.getText("charts_subtitle"), style: AppTextStyles.caption(isDark)),
                             ],
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      // Dropdown filter
+                      if (projects.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedProjectId,
+                              isExpanded: true,
+                              dropdownColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+                              icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'all',
+                                  child: Text(localeProvider.getText("charts_all_projects"), style: AppTextStyles.bodyMedium(isDark)),
+                                ),
+                                ...projects.map((p) => DropdownMenuItem(
+                                  value: p.projectId,
+                                  child: Text(localeProvider.getText("charts_project", params: {"name": p.title}), style: AppTextStyles.bodyMedium(isDark), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                ))
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedProjectId = val);
+                              },
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -116,6 +165,7 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
   }
 
   Widget _buildEmpty(bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -129,15 +179,16 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
             child: const Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 36),
           ),
           const SizedBox(height: 20),
-          Text("Chưa có dữ liệu thống kê", style: AppTextStyles.heading3(isDark)),
+          Text(localeProvider.getText("charts_empty_title"), style: AppTextStyles.heading3(isDark)),
           const SizedBox(height: 8),
-          Text("Tạo và hoàn thành các task để xem báo cáo", style: AppTextStyles.caption(isDark), textAlign: TextAlign.center),
+          Text(localeProvider.getText("charts_empty_desc"), style: AppTextStyles.caption(isDark), textAlign: TextAlign.center),
         ],
       ),
     );
   }
 
   Widget _buildSummaryCards(List<TaskModel> tasks, bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final total = tasks.length;
     final done = tasks.where((t) => t.status == TaskStatus.done).length;
     final inProgress = tasks.where((t) => t.status == TaskStatus.in_progress).length;
@@ -148,7 +199,7 @@ class _ChartsScreenState extends State<ChartsScreen> with SingleTickerProviderSt
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Tổng quan", style: AppTextStyles.heading3(isDark)),
+        Text(localeProvider.getText("charts_summary"), style: AppTextStyles.heading3(isDark)),
         const SizedBox(height: 14),
         Row(
           children: [

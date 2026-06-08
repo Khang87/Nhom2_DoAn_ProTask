@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/task_model.dart';
 import '../service/firestore_service.dart';
 import '../service/storage_service.dart';
@@ -67,13 +68,24 @@ class TaskProvider with ChangeNotifier {
     await _firestoreService.updateTaskStatus(taskId, newStatus);
   }
 
-  Future<void> updateTaskDetails(String taskId, String title, String description, TaskPriority priority, List<String> assignees, DateTime? dueDate) async {
+  Future<void> updateTaskDetails(
+    String taskId,
+    String title,
+    String description,
+    TaskPriority priority,
+    List<String> assignees,
+    DateTime? dueDate,
+    double progress,
+    List<AttachmentModel> attachments,
+  ) async {
     await _firestoreService.updateTaskDetails(taskId, {
       'title': title,
       'description': description,
       'priority': priority.toString().split('.').last,
       'assignees': assignees,
-      'due_date': dueDate,
+      'due_date': dueDate != null ? Timestamp.fromDate(dueDate) : null,
+      'progress': progress,
+      'attachments': attachments.map((a) => a.toMap()).toList(),
     });
   }
 

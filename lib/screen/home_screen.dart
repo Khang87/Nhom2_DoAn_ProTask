@@ -249,47 +249,50 @@ class HomeTab extends StatelessWidget {
           ),
         ),
 
-        // ── Projects Section ───────────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(localeProvider.getText('home_my_projects'), style: AppTextStyles.heading3(isDark)),
-                Text(
-                  localeProvider.getText('home_projects_count', params: {'count': projectProvider.projects.length.toString()}),
-                  style: AppTextStyles.caption(isDark),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // Split projects into two lists
+        ...(() {
+          final currentUserId = authProvider.userModel?.uid ?? '';
+          final managedProjects = projectProvider.projects.where((p) {
+            final role = projectProvider.getUserRole(p.projectId, currentUserId);
+            return role == 'owner' || role == 'manager';
+          }).toList();
 
-        if (projectProvider.isLoading)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(40),
-              child: Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5)),
-            ),
-          )
-        else if (projectProvider.projects.isEmpty)
-          SliverToBoxAdapter(child: _buildEmptyProjects(isDark, context, authProvider.userModel?.uid ?? '', localeProvider))
-        else
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 180,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: projectProvider.projects.length,
-                itemBuilder: (context, index) {
-                  final project = projectProvider.projects[index];
-                  return _buildProjectCard(context, project, isDark, authProvider.userModel?.uid ?? '', taskProvider, localeProvider);
-                },
-              ),
-            ),
-          ),
+          final participatedProjects = projectProvider.projects.where((p) {
+            final role = projectProvider.getUserRole(p.projectId, currentUserId);
+            return role == 'member';
+          }).toList();
+
+          if (projectProvider.isLoading) {
+            return [
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5)),
+                ),
+              )
+            ];
+          }
+
+          if (projectProvider.projects.isEmpty) {
+            return [
+              SliverToBoxAdapter(child: _buildEmptyProjects(isDark, context, currentUserId, localeProvider))
+            ];
+          }
+
+          List<Widget> sections = [];
+
+          if (managedProjects.isNotEmpty) {
+            sections.add(_buildProjectSectionHeader(localeProvider.getText('home_managed_projects'), managedProjects.length.toString(), isDark, localeProvider));
+            sections.add(_buildProjectList(context, managedProjects, isDark, currentUserId, taskProvider, localeProvider));
+          }
+
+          if (participatedProjects.isNotEmpty) {
+            sections.add(_buildProjectSectionHeader(localeProvider.getText('home_participated_projects'), participatedProjects.length.toString(), isDark, localeProvider));
+            sections.add(_buildProjectList(context, participatedProjects, isDark, currentUserId, taskProvider, localeProvider));
+          }
+
+          return sections;
+        }()),
 
         // ── Upcoming Deadlines ─────────────────────────────────
         SliverToBoxAdapter(
@@ -342,6 +345,40 @@ class HomeTab extends StatelessWidget {
     return upcoming.take(5).toList();
   }
 
+  Widget _buildProjectSectionHeader(String title, String count, bool isDark, LocaleProvider localeProvider) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: AppTextStyles.heading3(isDark)),
+            Text(
+              localeProvider.getText('home_projects_count', params: {'count': count}),
+              style: AppTextStyles.caption(isDark),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProjectList(BuildContext context, List<ProjectModel> projects, bool isDark, String currentUserId, TaskProvider taskProvider, LocaleProvider localeProvider) {
+    return SliverToBoxAdapter(
+      child: SizedBox(
+        height: 180,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: projects.length,
+          itemBuilder: (context, index) {
+            return _buildProjectCard(context, projects[index], isDark, currentUserId, taskProvider, localeProvider);
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatCard(String label, String value, IconData icon, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
@@ -372,10 +409,9 @@ class HomeTab extends StatelessWidget {
     final role = projectProvider.getUserRole(project.projectId, currentUserId);
     final canManage = role == 'owner' || role == 'manager';
 
-    // Count tasks for this project
     final projectTasks = taskProvider.tasks.where((t) => t.projectId == project.projectId).toList();
     final doneTasks = projectTasks.where((t) => t.status == TaskStatus.done).length;
-    final progress = projectTasks.isEmpty ? 0.0 : doneTasks / projectTasks.length;
+    final progress = project.isCompleted ? 1.0 : project.progress;
 
     final List<LinearGradient> gradients = [
       AppGradients.cardPurple,
@@ -422,9 +458,7 @@ class HomeTab extends StatelessWidget {
                 if (canManage)
                   GestureDetector(
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(localeProvider.getText('home_permission_denied'))),
-                      );
+                      _showEditProjectDialog(context, isDark, project, localeProvider);
                     },
                     child: Container(
                       width: 28, height: 28,
@@ -604,6 +638,176 @@ class HomeTab extends StatelessWidget {
             Text(localeProvider.getText('home_no_deadlines'), style: AppTextStyles.body(isDark)),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditProjectDialog(BuildContext context, bool isDark, ProjectModel project, LocaleProvider localeProvider) {
+    final titleController = TextEditingController(text: project.title);
+    final descController = TextEditingController(text: project.description);
+    DateTime? selectedEndDate = project.endDate;
+    double selectedProgress = project.progress;
+    bool isCompleted = project.isCompleted;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Container(
+            margin: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: const Icon(Icons.edit_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Text("Chỉnh sửa dự án", style: AppTextStyles.heading3(isDark)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: titleController,
+                    style: AppTextStyles.body(isDark),
+                    decoration: InputDecoration(
+                      labelText: localeProvider.getText('home_project_name'),
+                      prefixIcon: const Icon(Icons.folder_outlined, color: AppColors.primary, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descController,
+                    style: AppTextStyles.body(isDark),
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: localeProvider.getText('home_project_desc'),
+                      prefixIcon: const Icon(Icons.description_outlined, color: AppColors.primary, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Chọn thời hạn (End Date)
+                  GestureDetector(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: selectedEndDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      );
+                      if (date != null) {
+                        setModalState(() => selectedEndDate = date);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            selectedEndDate == null 
+                                ? "Chưa thiết lập thời gian kết thúc" 
+                                : "Hạn chót: ${selectedEndDate!.day}/${selectedEndDate!.month}/${selectedEndDate!.year}",
+                            style: AppTextStyles.body(isDark),
+                          ),
+                          const Spacer(),
+                          if (selectedEndDate != null)
+                            GestureDetector(
+                              onTap: () => setModalState(() => selectedEndDate = null),
+                              child: const Icon(Icons.close_rounded, size: 20, color: AppColors.textSecondaryLight),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text("Tiến độ: ${(selectedProgress * 100).toInt()}%", style: AppTextStyles.captionBold(isDark)),
+                  Slider(
+                    value: selectedProgress,
+                    min: 0.0,
+                    max: 1.0,
+                    divisions: 20,
+                    activeColor: AppColors.primary,
+                    onChanged: (val) {
+                      setModalState(() {
+                        selectedProgress = val;
+                        if (val == 1.0) isCompleted = true;
+                        if (val < 1.0) isCompleted = false;
+                      });
+                    },
+                  ),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Đã hoàn thành dự án?", style: AppTextStyles.bodyMedium(isDark)),
+                      Switch(
+                        value: isCompleted,
+                        activeColor: AppColors.primary,
+                        onChanged: (val) {
+                          setModalState(() {
+                            isCompleted = val;
+                            if (val) selectedProgress = 1.0;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: GradientButton(
+                      label: "Lưu thay đổi",
+                      icon: Icons.save_rounded,
+                      onTap: () {
+                        if (titleController.text.isNotEmpty) {
+                          Provider.of<ProjectProvider>(context, listen: false)
+                              .updateProject(project.projectId, titleController.text, descController.text, selectedEndDate, selectedProgress, isCompleted);
+                          Navigator.pop(ctx);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -23,6 +23,9 @@ class ProjectModel {
   final String ownerId;
   final List<ProjectMember> members;
   final DateTime createdAt;
+  final DateTime? endDate;
+  final double progress;
+  final bool isCompleted;
 
   ProjectModel({
     required this.projectId,
@@ -31,6 +34,9 @@ class ProjectModel {
     required this.ownerId,
     required this.members,
     required this.createdAt,
+    this.endDate,
+    this.progress = 0.0,
+    this.isCompleted = false,
   });
 
   factory ProjectModel.fromMap(Map<String, dynamic> map, String id) {
@@ -44,6 +50,9 @@ class ProjectModel {
               .toList() ??
           [],
       createdAt: (map['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      endDate: (map['end_date'] as Timestamp?)?.toDate(),
+      progress: (map['progress'] ?? 0.0).toDouble(),
+      isCompleted: map['is_completed'] ?? false,
     );
   }
 
@@ -54,6 +63,9 @@ class ProjectModel {
       'owner_id': ownerId,
       'members': members.map((m) => m.toMap()).toList(),
       'created_at': Timestamp.fromDate(createdAt),
+      if (endDate != null) 'end_date': Timestamp.fromDate(endDate!),
+      'progress': progress,
+      'is_completed': isCompleted,
     };
   }
 }

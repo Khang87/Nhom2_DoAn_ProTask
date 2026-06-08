@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../app_theme.dart';
 import '../provider/task_provider.dart';
 import '../model/task_model.dart';
+import '../provider/locale_provider.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -35,6 +36,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     return Scaffold(
       body: Consumer<TaskProvider>(
@@ -65,14 +67,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Lịch Công việc", style: AppTextStyles.heading2(isDark)),
-                          Text("Deadline theo ngày", style: AppTextStyles.caption(isDark)),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(localeProvider.getText("calendar_title"), style: AppTextStyles.heading2(isDark)),
+                            Text(
+                              localeProvider.getText("calendar_subtitle"),
+                              style: AppTextStyles.caption(isDark),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                      const Spacer(),
                       // Format toggle
                       GestureDetector(
                         onTap: () => setState(() {
@@ -88,7 +96,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             border: Border.all(color: AppColors.primary.withOpacity(0.3)),
                           ),
                           child: Text(
-                            _calendarFormat == CalendarFormat.month ? "Tuần" : "Tháng",
+                            _calendarFormat == CalendarFormat.month ? localeProvider.getText("calendar_format_week") : localeProvider.getText("calendar_format_month"),
                             style: GoogleFonts.inter(
                               fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary,
                             ),
@@ -221,7 +229,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       Text(
                         _selectedDay != null
                             ? DateFormat('dd/MM/yyyy').format(_selectedDay!)
-                            : "Hôm nay",
+                            : localeProvider.getText("calendar_today"),
                         style: AppTextStyles.heading3(isDark),
                       ),
                       const SizedBox(width: 10),
@@ -256,6 +264,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildEmptyDay(bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 36),
       child: Center(
@@ -264,9 +273,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Icon(Icons.event_available_rounded, size: 48,
                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
             const SizedBox(height: 12),
-            Text("Không có task nào trong ngày này", style: AppTextStyles.body(isDark)),
+            Text(localeProvider.getText("calendar_empty_title"), style: AppTextStyles.body(isDark)),
             const SizedBox(height: 4),
-            Text("Ngày tự do! 🎉", style: AppTextStyles.caption(isDark)),
+            Text(localeProvider.getText("calendar_empty_desc"), style: AppTextStyles.caption(isDark)),
           ],
         ),
       ),
